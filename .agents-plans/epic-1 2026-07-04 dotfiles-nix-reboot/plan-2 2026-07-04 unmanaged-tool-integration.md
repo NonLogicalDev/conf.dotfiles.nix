@@ -83,6 +83,7 @@ The desired middle ground is: conventional top-level files remain mutable and to
 - [x] 2026-07-04 18:17 - Verified native-program policy behavior: `force-disable` forces native Git off, and default `forbid` rejects simultaneous `programs.git.enable`.
 - [x] 2026-07-04 18:19 - Added configurable comment markers and removed the unnecessary unmanaged module directory `default.nix`.
 - [x] 2026-07-04 18:19 - Replaced deep relative helper imports with `inputs.self.lib.home.*` in the unmanaged submodules and revalidated with `nix flake check`.
+- [x] 2026-07-04 18:36 - Added explanatory comments to the repo-local `lib/` files so readers do not need deep Nix or Home Manager module knowledge to follow the helper boundaries.
 
 ## Unfinished Work
 
