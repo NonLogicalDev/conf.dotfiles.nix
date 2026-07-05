@@ -54,6 +54,7 @@ This repository already uses the host-user convention `hosts/nonlogicals-mbp/use
 - Defer Atuin fish integration until the fish slice. The old fish Dotter file only ran `atuin init fish`, but this repo has not yet decided whether Home Manager should own fish as a secondary shell.
 - Keep the Atuin slice focused on client behavior. Local service/dev helpers such as `Justfile` and `compose.yml` are not migrated into Home Manager unless a later system/service slice intentionally owns the Atuin server.
 - Expose Atuin local server control through the Atuin Home Manager profile, not `packages/`. `atuin-server-up` and `atuin-server-down` carry the useful behavior of the old Compose/Justfile setup while keeping operational defaults overridable through environment variables. The top-level `packages/` tree is reserved for reusable tools.
+- Migrate tmux through Home Manager's native `programs.tmux` options plus one focused `extra.conf` file for status bar and keybinding behavior. Keep a top-level `.tmux.conf` bridge that sources the XDG config so tmux startup remains compatible while Home Manager replaces the old Dotter symlink.
 
 ## Implementation Steps
 
@@ -77,6 +78,9 @@ This repository already uses the host-user convention `hosts/nonlogicals-mbp/use
 - The Atuin local server `Justfile` and `compose.yml` are not client settings. They are excluded from this Home Manager slice; the essential client behavior is the local `sync_address`.
 - Enabling Atuin zsh integration while fzf zsh integration is enabled requires disabling fzf's Ctrl-R history widget. Home Manager documents `programs.fzf.historyWidget.command = ""` as the supported way to yield Ctrl-R to Atuin.
 - The Atuin server helper does not belong under `packages/` because it is host-user operational glue, not a reusable program. It lives inline in `home/atuin/default.nix`, produces real `atuin-server-up` and `atuin-server-down` commands, and keeps mutable operational values configurable with `ATUIN_SERVER_*` environment variables.
+- The live tmux setup had both `~/.tmux.conf` and `~/.config/tmux/` as Dotter symlinks. Home Manager writes `~/.config/tmux/tmux.conf`; a small top-level bridge is enough to preserve tmux startup behavior without keeping duplicate config.
+- The old tmux `init.sh` and `bin/hooks/tmux/on-start.sh` are not active tmux configuration. The `init.sh` only handled `reattach-to-user-namespace`, so it is not migrated in this slice.
+- The tmux migration intentionally fixes the old `copy-modj-vi` typo by binding `y` in `copy-mode-vi`, matching the intended behavior rather than the exact old file.
 
 ## Work Log
 
@@ -86,8 +90,10 @@ This repository already uses the host-user convention `hosts/nonlogicals-mbp/use
 - [x] 2026-07-05 00:58 - Trimmed Atuin migration to client behavior only by dropping the local `Justfile` and `compose.yml` helper files from Home Manager ownership.
 - [x] 2026-07-05 01:00 - Added `atuin-server-up` and `atuin-server-down` as host-user Home Manager helper commands instead of reusable Blueprint packages.
 - [x] 2026-07-05 01:08 - Verified generated `atuin-server-up` and `atuin-server-down` with `bash -n`, confirmed only Atuin client TOML is installed under `.config/atuin`, and reran `nix flake check`.
+- [x] 2026-07-05 01:16 - Added the tmux Home Manager profile with native options, focused `extra.conf`, and a top-level `.tmux.conf` bridge.
+- [x] 2026-07-05 01:22 - Verified the generated tmux files, parsed the generated config with an isolated tmux socket, and reran `nix flake check`.
 
 ## Unfinished Work
 
-- [ ] Decide whether the next app slice should be `tmux`, `jj`, `vifm`, or script packaging.
+- [ ] Decide whether the next app slice should be `jj`, `vifm`, fish compatibility, or script packaging.
 - [ ] Review `common/bin` and `common/git/bin` helper scripts command by command before converting any into Blueprint packages.

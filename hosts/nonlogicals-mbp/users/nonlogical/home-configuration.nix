@@ -6,5 +6,6 @@
     ./home/atuin
     ./home/git
     ./home/shell
+    ./home/tmux
   ];
 }
