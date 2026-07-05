@@ -17,6 +17,7 @@ Read this file before editing the repo. This project is a slow migration from Do
 - Use `numtide/blueprint` directly as the flake output mapper.
 - Do not add `flake-parts`.
 - Do not migrate real dotfiles before inventorying Dotter ownership and current behavior.
+- Treat existing dotfiles as behavioral source material, not as target structure. Prefer idiomatic Home Manager/Nix options and small companion files over exact copies, preserved ordering, or large literal config strings.
 - Keep shared modules free of personal host/user constants unless the value is genuinely shared.
 - Keep `modules/home/core.nix` explicitly light during bootstrap. Do not add common packages there until inventory shows what should be owned.
 - Do not create fake hosts. Add `hosts/<host>/configuration.nix`, `darwin-configuration.nix`, or `system-configuration.nix` only for real machines.

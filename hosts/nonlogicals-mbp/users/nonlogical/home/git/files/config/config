@@ -1,8 +1,0 @@
-[include]
-  path = gitconfig.d/00_index
-[user]
-	name = Oleg Utkin
-	email = hello@nonlogical.net
-[credential "https://gist.github.com"]
-	helper = 
-	helper = !/nix/store/p7wwwbqc7s50l4z2jgk42hynw15cmwx6-gh-2.93.0/bin/.gh-wrapped auth git-credential
