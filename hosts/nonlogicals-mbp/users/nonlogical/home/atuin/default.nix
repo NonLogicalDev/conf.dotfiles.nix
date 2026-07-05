@@ -15,20 +15,6 @@ let
     logDir = "${config.home.homeDirectory}/Library/Logs/atuin";
   };
 
-  # The server should be Nix-managed now that Atuin itself is Nix-managed. The
-  # launchd runner creates mutable data/log directories and then execs the Atuin
-  # server from the same package Home Manager installs for the client.
-  atuinServerLaunchd = pkgs.writeShellApplication {
-    name = "atuin-server-launchd";
-
-    text = ''
-      /bin/mkdir -p "${server.dataDir}" "${server.logDir}"
-      exec ${lib.getExe config.programs.atuin.package} server start \
-        --host "${server.host}" \
-        --port "${server.port}"
-    '';
-  };
-
   # These commands control the launchd agent. They are host-user operational
   # helpers, not reusable repo packages, so they stay local to this Home Manager
   # profile.
@@ -149,11 +135,24 @@ in
     atuinServerTools
   ];
 
+  # Create the mutable directories the launchd job depends on without hiding
+  # that setup in a startup wrapper.
+  xdg.dataFile."atuin/.keep".text = "";
+  home.file."Library/Logs/atuin/.keep".text = "";
+
   launchd.agents.atuin-server = {
     enable = true;
     domain = "user";
     config = {
-      ProgramArguments = [ (lib.getExe atuinServerLaunchd) ];
+      ProgramArguments = [
+        (lib.getExe config.programs.atuin.package)
+        "server"
+        "start"
+        "--host"
+        server.host
+        "--port"
+        server.port
+      ];
       EnvironmentVariables = {
         ATUIN_DB_URI = server.databaseUri;
         ATUIN_OPEN_REGISTRATION = "true";
