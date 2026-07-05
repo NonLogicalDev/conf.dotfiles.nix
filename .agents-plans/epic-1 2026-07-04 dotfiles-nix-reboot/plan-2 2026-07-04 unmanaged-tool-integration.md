@@ -47,6 +47,7 @@ The desired middle ground is: conventional top-level files remain mutable and to
 - Nixpkgs standard lib does not provide a marked mutable-file block updater. Use standard pieces (`lib.escapeShellArg`, Home Manager activation DAG entries) but keep the repository-owned block replacement helper generic.
 - Keep tool-specific block bodies out of `lib/home/managed-block.nix`; Git include syntax belongs in the Git module, and shell source syntax belongs in the unmanaged-program helper.
 - Allow `lib/home/managed-block.nix` callers to override comment marker prefix/suffix so the same Home Manager block updater can target files with different comment syntaxes.
+- Allow `lib/home/managed-block.nix` callers to choose where a new block is inserted. Default to appending, but support an `after-preamble` mode with caller-provided line regexes so shebangs, file headers, and doc comments can remain before the managed block.
 - Import the unmanaged bash, git, and zsh modules explicitly from `modules/home/core.nix`; avoid a `modules/home/programs/unmanaged/default.nix` that only hides a short module list.
 - In this Blueprint flake's module graph, Home Manager submodules receive `inputs`, so leaf modules should use `inputs.self.lib.home.*` for repo-local helpers instead of deep relative imports or `_module.args` plumbing.
 
@@ -84,6 +85,7 @@ The desired middle ground is: conventional top-level files remain mutable and to
 - [x] 2026-07-04 18:19 - Added configurable comment markers and removed the unnecessary unmanaged module directory `default.nix`.
 - [x] 2026-07-04 18:19 - Replaced deep relative helper imports with `inputs.self.lib.home.*` in the unmanaged submodules and revalidated with `nix flake check`.
 - [x] 2026-07-04 18:36 - Added explanatory comments to the repo-local `lib/` files so readers do not need deep Nix or Home Manager module knowledge to follow the helper boundaries.
+- [x] 2026-07-04 18:42 - Added managed-block placement control with default append behavior and an `after-preamble` mode for configurable shebang/header/comment preservation.
 
 ## Unfinished Work
 
