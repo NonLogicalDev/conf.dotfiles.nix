@@ -32,6 +32,7 @@ The current dotfiles situation is treated as a working but chaotic garden. This 
 - Move agent-facing repo conventions out of `README.md` and into repo-local `AGENTS.md`.
 - Keep migration principles and current next-step memory in `AGENTS.md`, not in the human-facing README.
 - Keep repository layout details in `README.md` because they are useful project documentation.
+- Call out `hosts/<host>/users/<username>/home-configuration.nix` explicitly as the per-user Home Manager enablement path.
 
 ## Implementation Steps
 
@@ -59,6 +60,7 @@ The current dotfiles situation is treated as a working but chaotic garden. This 
 - Repo operating conventions should live in `AGENTS.md`; keep `README.md` focused on project intent and human-facing status.
 - Starting principles and bootstrapping status are agent memory for future work, not README content.
 - Layout details are human-facing enough to keep in `README.md`; detailed enforcement still lives in `AGENTS.md`.
+- Blueprint's host-user path deserves explicit documentation because it is the boundary between reusable modules and per-user enablement.
 
 ## Work Log
 
@@ -74,6 +76,7 @@ The current dotfiles situation is treated as a working but chaotic garden. This 
 - [x] 2026-07-04 17:37 - Moved agent-facing organization guidance from `README.md` into `AGENTS.md`.
 - [x] 2026-07-04 17:39 - Moved migration principles and current next-step memory from `README.md` into `AGENTS.md`.
 - [x] 2026-07-04 17:39 - Restored concise layout documentation to `README.md`.
+- [x] 2026-07-04 17:41 - Called out the explicit host-user Home Manager configuration path in README and AGENTS.
 
 ## Unfinished Work
 

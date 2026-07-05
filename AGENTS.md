@@ -29,7 +29,8 @@ Use Blueprint's folders by what they produce:
 - `modules/home/programs/` contains lower-level Home Manager integrations for one program.
 - `modules/home/suites/` contains higher-level Home Manager compositions that enable multiple programs or integrations together.
 - `modules/darwin/`, `modules/nixos/`, and `modules/system-manager/` contain shared system modules.
-- `hosts/<host>/` contains host-specific system facts and the per-user enablement choices for that host.
+- `hosts/<host>/` contains host-specific system facts.
+- `hosts/<host>/users/<username>/home-configuration.nix` contains the per-user Home Manager enablement choices for that host.
 - `lib/` contains Nix-native helper functions and data that do not produce artifacts by themselves.
 
 Prefer `lib/` for reusable Nix helpers such as option builders, naming helpers, small module constructors, shared predicates, or data normalization. If it grows, split it by namespace, for example `lib/home/`, `lib/packages/`, or `lib/hosts/`, then re-export those helpers from `lib/default.nix`.
@@ -39,7 +40,7 @@ Prefer `lib/` for reusable Nix helpers such as option builders, naming helpers, 
 - Low-level program derivations belong under `packages/programs/<name>/`.
 - Low-level Home Manager integrations belong under `modules/home/programs/<name>/`.
 - Higher-level Home Manager bundles belong under `modules/home/suites/<name>/`.
-- Host/user files should choose what to enable; reusable behavior belongs in modules.
+- `hosts/<host>/users/<username>/home-configuration.nix` should choose what to enable for that user on that host; reusable behavior belongs in modules.
 - `users.users.<name>.home` is a nix-darwin system option and belongs in the Darwin host layer, not inside Home Manager modules.
 
 ## Validation

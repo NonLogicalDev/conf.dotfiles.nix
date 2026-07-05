@@ -21,5 +21,6 @@ The flake is Blueprint-native and is intended to grow into three system-profile 
 - `modules/home/programs/` contains lower-level Home Manager integrations for one program.
 - `modules/home/suites/` contains higher-level Home Manager compositions that enable multiple programs or integrations together.
 - `modules/darwin/`, `modules/nixos/`, and `modules/system-manager/` contain shared system modules.
-- `hosts/<host>/` contains host-specific system facts and the per-user enablement choices for that host.
+- `hosts/<host>/` contains host-specific system facts.
+- `hosts/<host>/users/<username>/home-configuration.nix` contains the per-user Home Manager enablement choices for that host.
 - `lib/` contains Nix-native helper functions and data that do not produce artifacts by themselves.
