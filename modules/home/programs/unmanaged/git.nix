@@ -8,10 +8,15 @@
 
 let
   inherit (lib)
+    concatStringsSep
+    filter
+    mkDefault
     mkEnableOption
+    mkForce
     mkIf
     mkMerge
     mkOption
+    optionalString
     types
     ;
 
@@ -20,20 +25,48 @@ let
     inherit lib;
     awk = "${pkgs.gawk}/bin/awk";
   };
-  unmanagedProgram = inputs.self.lib.home.unmanagedProgram {
-    inherit lib;
-  };
+
+  # Home Manager's native git module renders its main configuration to
+  # xdg.configFile."git/config".text. In unmanaged mode we keep using that
+  # native module as the Git config generator, but we copy the rendered text
+  # into our managed include fragment instead of letting Home Manager own the
+  # mutable ~/.config/git/config file directly.
+  nativeGitConfigText = config.xdg.configFile."git/config".text or "";
+
+  managedGitConfigText = concatStringsSep "\n" (
+    filter (text: text != "") [
+      (optionalString (
+        cfg.includeHomeManagerGitContent && config.programs.git.enable
+      ) nativeGitConfigText)
+      cfg.managedConfig
+    ]
+  );
 in
 {
   options.programs.unmanaged.git = {
     enable = mkEnableOption "unmanaged git coexistence helpers";
 
-    nativeProgramPolicy = unmanagedProgram.nativeProgramPolicyOption "git";
+    includeHomeManagerGitContent = mkOption {
+      type = types.bool;
+      default = true;
+      description = ''
+        Whether unmanaged git should copy Home Manager's generated
+        programs.git configuration into the managed include fragment.
+
+        This enables Home Manager's native git module as a content generator,
+        then disables only the native git/config file link. Other native Git
+        side effects, such as the Git package, global ignore file, attributes
+        file, hooks path, and maintenance integration, remain available.
+      '';
+    };
 
     managedConfig = mkOption {
       type = types.lines;
       default = "";
-      description = "Nix-managed git config written to ~/.config/dotfiles-nix/git/config.";
+      description = ''
+        Additional Nix-managed Git config appended after the generated
+        Home Manager Git config in ~/.config/dotfiles-nix/git/config.
+      '';
     };
 
     includeTarget = mkOption {
@@ -54,13 +87,38 @@ in
   };
 
   config = mkIf cfg.enable (mkMerge [
-    (unmanagedProgram.nativeProgramPolicyConfig {
-      inherit config cfg;
-      program = "git";
-      optionName = "programs.unmanaged.git";
+    {
+      assertions = [
+        {
+          assertion = cfg.includeHomeManagerGitContent || !config.programs.git.enable;
+          message = ''
+            programs.unmanaged.git cannot be combined with programs.git.enable
+            when programs.unmanaged.git.includeHomeManagerGitContent is false.
+
+            Either keep includeHomeManagerGitContent enabled so unmanaged git
+            can use native Home Manager git as a content generator while
+            suppressing only the native git/config link, or disable
+            programs.git.enable.
+          '';
+        }
+        {
+          assertion = !cfg.includeHomeManagerGitContent || config.programs.git.enable;
+          message = ''
+            programs.unmanaged.git.includeHomeManagerGitContent requires
+            programs.git.enable so Home Manager can generate the complete Git
+            configuration that unmanaged git writes to its include fragment.
+          '';
+        }
+      ];
+    }
+    (mkIf cfg.includeHomeManagerGitContent {
+      programs.git.enable = mkDefault true;
+    })
+    (mkIf (cfg.includeHomeManagerGitContent && config.programs.git.enable) {
+      xdg.configFile."git/config".enable = mkForce false;
     })
     {
-      home.file.".config/dotfiles-nix/git/config".text = cfg.managedConfig;
+      home.file.".config/dotfiles-nix/git/config".text = managedGitConfigText;
 
       home.activation.unmanaged-git-gitconfig = managedBlock.mkActivation {
         name = "git gitconfig";

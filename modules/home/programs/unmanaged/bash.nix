@@ -8,27 +8,122 @@
 
 let
   inherit (lib)
+    concatStringsSep
+    filter
     filterAttrs
+    hasPrefix
+    listToAttrs
     mapAttrs'
+    mkDefault
     mkEnableOption
+    mkForce
     mkIf
     mkMerge
     mkOption
     nameValuePair
+    optional
+    optionalAttrs
+    optionalString
+    removePrefix
     types
     ;
 
   cfg = config.programs.unmanaged.bash;
+  bashCfg = config.programs.bash;
   managedBlock = inputs.self.lib.home.managedBlock {
     inherit lib;
     awk = "${pkgs.gawk}/bin/awk";
   };
-  unmanagedProgram = inputs.self.lib.home.unmanagedProgram { inherit lib; };
 
   hookDir = name: ".config/bash/rc/${name}.d";
   dispatcherPath = name: ".config/bash/rc/${name}.bash";
   targetPath = name: ".${name}";
   defaultHookName = "50-nix-managed.bash";
+
+  nativeBashFileNames = [
+    "bash_profile"
+    "profile"
+    "bashrc"
+    "bash_logout"
+  ];
+
+  nativeBashFileKey = name: ".${name}";
+
+  disableNativeBashFileLinks = listToAttrs (
+    map (name: nameValuePair (nativeBashFileKey name) { enable = mkForce false; }) nativeBashFileNames
+  );
+
+  aliasesStr = concatStringsSep "\n" (
+    lib.mapAttrsToList (k: v: "alias -- ${k}=${lib.escapeShellArg v}") bashCfg.shellAliases
+  );
+
+  shellOptionsStr =
+    let
+      switch = value: if hasPrefix "-" value then "-u" else "-s";
+    in
+    concatStringsSep "\n" (
+      map (value: "shopt ${switch value} ${removePrefix "-" value}") bashCfg.shellOptions
+    );
+
+  sessionVariablesStr = config.lib.shell.exportAll bashCfg.sessionVariables;
+
+  historyControlStr = concatStringsSep "\n" (
+    (lib.mapAttrsToList (name: value: "${name}=${value}") (
+      (optionalAttrs (bashCfg.historyFileSize != null) {
+        HISTFILESIZE = toString bashCfg.historyFileSize;
+      })
+      // (optionalAttrs (bashCfg.historySize != null) {
+        HISTSIZE = toString bashCfg.historySize;
+      })
+      // (optionalAttrs (bashCfg.historyFile != null) {
+        HISTFILE = ''"${bashCfg.historyFile}"'';
+      })
+      // (optionalAttrs (bashCfg.historyControl != [ ]) {
+        HISTCONTROL = concatStringsSep ":" bashCfg.historyControl;
+      })
+      // (optionalAttrs (bashCfg.historyIgnore != [ ]) {
+        HISTIGNORE = lib.escapeShellArg (concatStringsSep ":" bashCfg.historyIgnore);
+      })
+    ))
+    ++ (optional (bashCfg.historyFile != null) ''mkdir -p "$(dirname "$HISTFILE")"'')
+  );
+
+  # This mirrors Home Manager's bash module output while still letting native
+  # programs.bash merge all of its options first. The generated content includes
+  # snippets from unrelated Home Manager modules because they contribute to
+  # programs.bash.initExtra, programs.bash.shellAliases, session variables, and
+  # related options before these strings are evaluated.
+  nativeBashFileText = {
+    bash_profile = ''
+      # include .profile if it exists
+      [[ -f ~/.profile ]] && . ~/.profile
+
+      # include .bashrc if it exists
+      [[ -f ~/.bashrc ]] && . ~/.bashrc
+    '';
+    profile = ''
+      . "${config.home.sessionVariablesPackage}/etc/profile.d/hm-session-vars.sh"
+
+      ${sessionVariablesStr}
+
+      ${bashCfg.profileExtra}
+    '';
+    bashrc = ''
+      ${bashCfg.bashrcExtra}
+
+      # Commands that should be applied only for interactive shells.
+      [[ $- == *i* ]] || return
+
+      ${historyControlStr}
+
+      ${shellOptionsStr}
+
+      ${aliasesStr}
+
+      ${bashCfg.initExtra}
+    '';
+    bash_logout = bashCfg.logoutExtra;
+  };
 
   managedFileOption =
     { target }:
@@ -64,11 +159,29 @@ let
       description = "Unmanaged bash integration settings for ${target}.";
     };
 
+  mkHookFile = name: file: {
+    text = concatStringsSep "\n" (
+      filter (text: text != "") [
+        (optionalString (cfg.includeHomeManagerBashContent && config.programs.bash.enable) (
+          nativeBashFileText.${name}
+        ))
+        file.text
+      ]
+    );
+  };
+
   mkBashHookSourceBlock =
-    { hookDir }:
+    { hookDir, name }:
     ''
-      dotfiles_nix_hook_dir="${hookDir}"
-      if [ -d "$dotfiles_nix_hook_dir" ]; then
+      _dotfiles_nix_source_${name}_hooks() {
+        local dotfiles_nix_hook_dir="${hookDir}"
+        local dotfiles_nix_hook
+        local dotfiles_nix_had_nullglob
+
+        if [ ! -d "$dotfiles_nix_hook_dir" ]; then
+          return
+        fi
+
         if shopt -q nullglob; then
           dotfiles_nix_had_nullglob=1
         else
@@ -83,8 +196,10 @@ let
         if [ "$dotfiles_nix_had_nullglob" -eq 0 ]; then
           shopt -u nullglob
         fi
-      fi
-      unset dotfiles_nix_hook_dir dotfiles_nix_hook dotfiles_nix_had_nullglob
+      }
+
+      _dotfiles_nix_source_${name}_hooks
+      unset -f _dotfiles_nix_source_${name}_hooks
     '';
 
   mkBashFileConfig =
@@ -95,15 +210,13 @@ let
     {
       home.file =
         (mapAttrs' (
-          name: file:
-          nameValuePair "${hookDir name}/${file.hookName}" {
-            text = file.text;
-          }
+          name: file: nameValuePair "${hookDir name}/${file.hookName}" (mkHookFile name file)
         ) enabledFiles)
         // (mapAttrs' (
           name: _:
           nameValuePair (dispatcherPath name) {
             text = mkBashHookSourceBlock {
+              inherit name;
               hookDir = "$HOME/${hookDir name}";
             };
           }
@@ -135,23 +248,67 @@ in
   options.programs.unmanaged.bash = {
     enable = mkEnableOption "unmanaged bash coexistence helpers";
 
-    nativeProgramPolicy = unmanagedProgram.nativeProgramPolicyOption "bash";
+    includeHomeManagerBashContent = mkOption {
+      type = types.bool;
+      default = true;
+      description = ''
+        Whether unmanaged bash should copy the generated Home Manager bash
+        file bodies into its numbered Nix-managed hooks.
+
+        This enables Home Manager's native bash module as a content generator,
+        then disables the native top-level bash file links. That preserves
+        Home Manager internals such as hm-session-vars.sh, completion, history,
+        shell options, aliases, logout content, and integrations from unrelated
+        Home Manager program modules without requiring Home Manager to own the
+        conventional top-level bash files.
+      '';
+    };
 
     files = {
+      bash_profile = managedFileOption {
+        target = "~/.bash_profile";
+      };
+      profile = managedFileOption {
+        target = "~/.profile";
+      };
       bashrc = managedFileOption {
         target = "~/.bashrc";
       };
-      bash_profile = managedFileOption {
-        target = "~/.bash_profile";
+      bash_logout = managedFileOption {
+        target = "~/.bash_logout";
       };
     };
   };
 
   config = mkIf cfg.enable (mkMerge [
-    (unmanagedProgram.nativeProgramPolicyConfig {
-      inherit config cfg;
-      program = "bash";
-      optionName = "programs.unmanaged.bash";
+    {
+      assertions = [
+        {
+          assertion = cfg.includeHomeManagerBashContent || !config.programs.bash.enable;
+          message = ''
+            programs.unmanaged.bash cannot be combined with programs.bash.enable
+            when programs.unmanaged.bash.includeHomeManagerBashContent is false.
+
+            Either keep includeHomeManagerBashContent enabled so unmanaged bash
+            can use native Home Manager bash as a content generator while
+            suppressing native startup-file links, or disable programs.bash.enable.
+          '';
+        }
+        {
+          assertion = !cfg.includeHomeManagerBashContent || config.programs.bash.enable;
+          message = ''
+            programs.unmanaged.bash.includeHomeManagerBashContent requires
+            programs.bash.enable so Home Manager can generate the complete bash
+            file bodies that unmanaged bash copies into numbered hooks.
+          '';
+        }
+      ];
+    }
+    (mkIf cfg.includeHomeManagerBashContent {
+      programs.bash.enable = mkDefault true;
+    })
+    (mkIf (cfg.includeHomeManagerBashContent && config.programs.bash.enable) {
+      home.file = disableNativeBashFileLinks;
     })
     (mkBashFileConfig {
       inherit cfg;
