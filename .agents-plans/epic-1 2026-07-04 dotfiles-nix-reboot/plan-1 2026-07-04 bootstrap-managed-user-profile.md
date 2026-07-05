@@ -33,6 +33,8 @@ The current dotfiles situation is treated as a working but chaotic garden. This 
 - Keep migration principles and current next-step memory in `AGENTS.md`, not in the human-facing README.
 - Keep repository layout details in `README.md` because they are useful project documentation.
 - Call out `hosts/<host>/users/<username>/home-configuration.nix` explicitly as the per-user Home Manager enablement path.
+- Use `hosts/<host>/users/<username>/home/<program>.nix` for per-app user config when one file is enough.
+- Use `hosts/<host>/users/<username>/home/<program>/default.nix` when a per-app user config needs sibling files such as templates, generated fragments, or other support files.
 
 ## Implementation Steps
 
@@ -61,6 +63,7 @@ The current dotfiles situation is treated as a working but chaotic garden. This 
 - Starting principles and bootstrapping status are agent memory for future work, not README content.
 - Layout details are human-facing enough to keep in `README.md`; detailed enforcement still lives in `AGENTS.md`.
 - Blueprint's host-user path deserves explicit documentation because it is the boundary between reusable modules and per-user enablement.
+- Per-app user config should stay under the host-user home tree. Reusable behavior belongs in modules; machine/user-specific app choices belong under `hosts/<host>/users/<username>/home/`.
 
 ## Work Log
 
@@ -77,6 +80,7 @@ The current dotfiles situation is treated as a working but chaotic garden. This 
 - [x] 2026-07-04 17:39 - Moved migration principles and current next-step memory from `README.md` into `AGENTS.md`.
 - [x] 2026-07-04 17:39 - Restored concise layout documentation to `README.md`.
 - [x] 2026-07-04 17:41 - Called out the explicit host-user Home Manager configuration path in README and AGENTS.
+- [x] 2026-07-05 00:22 - Documented the host-user per-app config convention: `home/<program>.nix` for single-file app config, or `home/<program>/default.nix` with sibling files when the app needs a small local tree.
 
 ## Unfinished Work
 

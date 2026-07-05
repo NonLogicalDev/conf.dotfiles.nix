@@ -31,6 +31,8 @@ Use Blueprint's folders by what they produce:
 - `modules/darwin/`, `modules/nixos/`, and `modules/system-manager/` contain shared system modules.
 - `hosts/<host>/` contains host-specific system facts.
 - `hosts/<host>/users/<username>/home-configuration.nix` contains the per-user Home Manager enablement choices for that host.
+- `hosts/<host>/users/<username>/home/<program>.nix` contains per-app user config when one file is enough.
+- `hosts/<host>/users/<username>/home/<program>/default.nix` contains per-app user config when the app needs sibling files.
 - `lib/` contains Nix-native helper functions and data that do not produce artifacts by themselves.
 
 Prefer `lib/` for reusable Nix helpers such as option builders, naming helpers, small module constructors, shared predicates, or data normalization. If it grows, split it by namespace, for example `lib/home/`, `lib/packages/`, or `lib/hosts/`, then re-export those helpers from `lib/default.nix`.
@@ -41,6 +43,7 @@ Prefer `lib/` for reusable Nix helpers such as option builders, naming helpers, 
 - Low-level Home Manager integrations belong under `modules/home/programs/<name>/`.
 - Higher-level Home Manager bundles belong under `modules/home/suites/<name>/`.
 - `hosts/<host>/users/<username>/home-configuration.nix` should choose what to enable for that user on that host; reusable behavior belongs in modules.
+- Host-user app configuration belongs under `hosts/<host>/users/<username>/home/<program>.nix`, or under `hosts/<host>/users/<username>/home/<program>/default.nix` when the program needs companion files.
 - `users.users.<name>.home` is a nix-darwin system option and belongs in the Darwin host layer, not inside Home Manager modules.
 - In this Blueprint flake's module graph, `inputs` is available in submodules. Use `inputs.self.lib.*` for repo-local helpers instead of deep relative imports such as `../../../../lib/...`.
 - Do not use `_module.args` merely to thread repo-local helper libraries into submodules when `inputs.self.lib.*` is available.
