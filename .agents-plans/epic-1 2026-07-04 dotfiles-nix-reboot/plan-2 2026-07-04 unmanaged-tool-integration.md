@@ -18,7 +18,7 @@ This plan is about coexistence with tools that know nothing about Nix. A shell p
 
 That creates a conflict with normal Home Manager ownership. If Home Manager owns `~/.zshrc` or `~/.gitconfig` wholesale, then Nix-oblivious tools can still edit those files, but their edits are either overwritten by the next activation or become unmanaged drift. If third-party tools own those files wholesale, Nix cannot reliably add the managed configuration needed for the migration.
 
-The desired middle ground is: conventional top-level files remain mutable and tool-compatible, while Nix owns only a clearly marked block inside each file. For Git, that block includes a Nix-managed fragment under `~/.config/dotfiles-nix/git/`. For shell startup files, that block sources generated dispatcher files under `~/.config/<shell>/rc/<startup-file>.<shell>`; each dispatcher sources ordered hooks from the sibling `~/.config/<shell>/rc/<startup-file>.d/` directory, where Home Manager owns one numbered Nix hook and users or non-Nix tools can add their own numbered hooks. Activation scripts maintain the marked block declaratively and preserve everything outside it.
+The desired middle ground is: conventional top-level files remain mutable and tool-compatible, while Nix owns only a clearly marked block inside each file. For Git, those blocks include a Nix-managed fragment under `~/.config/git/config.d/50-nix-managed.conf`. For shell startup files, those blocks source generated dispatcher files under `~/.config/<shell>/rc/<startup-file>.<shell>`; each dispatcher sources ordered hooks from the sibling `~/.config/<shell>/rc/<startup-file>.d/` directory, where Home Manager owns one numbered Nix hook and users or non-Nix tools can add their own numbered hooks. Activation scripts maintain the marked block declaratively and preserve everything outside it.
 
 ## Product Integration
 
@@ -38,7 +38,7 @@ The desired middle ground is: conventional top-level files remain mutable and to
 - Keep conventional top-level files mutable by default.
 - Use activation scripts to insert or update marked managed blocks inside top-level files.
 - Preserve all content outside managed blocks.
-- Store Git's Home Manager or Nix-generated content in managed fragments under `~/.config/dotfiles-nix/git/`.
+- Store Git's Home Manager or Nix-generated content in `~/.config/git/config.d/50-nix-managed.conf`.
 - Store shell Home Manager or Nix-generated content as numbered hooks under `~/.config/<shell>/rc/<startup-file>.d/50-nix-managed.<shell>`.
 - Keep top-level managed shell blocks as pointers only. A managed block in `.zshenv`, `.zprofile`, `.zshrc`, `.zlogin`, `.zlogout`, `.bashrc`, or `.bash_profile` should source one generated dispatcher file and contain no hook iteration logic.
 - Source shell hook directories from generated dispatcher files in lexical order so user-owned hooks such as `~/.config/zsh/rc/zshenv.d/99-conda.zsh` or `~/.config/bash/rc/bashrc.d/99-conda.bash` can extend or override the Nix-managed hook without editing the top-level startup file.
@@ -49,8 +49,9 @@ The desired middle ground is: conventional top-level files remain mutable and to
 - Preserve Home Manager bash behavior by enabling native `programs.bash` as a content generator, mirroring the native generated file bodies into unmanaged bash's numbered Nix hooks, and forcing the native `.bash_profile`, `.profile`, `.bashrc`, and `.bash_logout` home-file links off. This keeps `hm-session-vars.sh`, completion, history settings, shell options, aliases, logout content, and integrations from other Home Manager modules without letting Home Manager replace the mutable top-level bash files.
 - For bash, nested startup sourcing means the generated dispatcher must isolate its scratch variables. `.bash_profile` normally sources `.profile` and `.bashrc`; each dispatcher therefore wraps hook iteration in a short function with local variables so nested dispatchers do not clobber each other.
 - Assert the bash generator/file-ownership boundary. If `includeHomeManagerBashContent` is enabled, `programs.bash.enable` must remain enabled so Home Manager can generate complete bash content; if `includeHomeManagerBashContent` is disabled, native `programs.bash.enable` must not be enabled because Home Manager would own conventional bash startup files directly.
-- Preserve Home Manager Git behavior by enabling native `programs.git` as a content generator, copying the native generated `xdg.configFile."git/config".text` into `~/.config/dotfiles-nix/git/config`, and forcing only the native `~/.config/git/config` link off. Other native Git side effects such as the Git package, global ignore file, attributes file, hooks path, and maintenance integration can still be used.
+- Preserve Home Manager Git behavior by enabling native `programs.git` as a content generator, copying the native generated `xdg.configFile."git/config".text` into `~/.config/git/config.d/50-nix-managed.conf`, and forcing only the native `~/.config/git/config` link off. Other native Git side effects such as the Git package, global ignore file, attributes file, hooks path, and maintenance integration can still be used.
 - Assert the Git generator/file-ownership boundary. If `includeHomeManagerGitContent` is enabled, `programs.git.enable` must remain enabled so Home Manager can generate complete Git config; if `includeHomeManagerGitContent` is disabled, native `programs.git.enable` must not be enabled because Home Manager would own `~/.config/git/config` directly.
+- Wire both conventional Git config entrypoints by default. Unmanaged Git inserts a managed include block in `~/.config/git/config` and `~/.gitconfig`, and both point at the same generated `~/.config/git/config.d/50-nix-managed.conf` fragment.
 - Default native Home Manager program policy should be `forbid`, not silent `mkForce false`, for unmanaged tools where the native module would compete with the unmanaged module rather than serving as a content generator.
 - Support an explicit `nativeProgramPolicy` enum:
 	- `forbid`: fail if native `programs.<tool>.enable` is also enabled.
@@ -61,17 +62,17 @@ The desired middle ground is: conventional top-level files remain mutable and to
 - Allow `lib/home/managed-block.nix` callers to override comment marker prefix/suffix so the same Home Manager block updater can target files with different comment syntaxes.
 - Allow `lib/home/managed-block.nix` callers to choose where a new block is inserted. Default to appending, but support an `after-preamble` mode with caller-provided line regexes so shebangs, file headers, and doc comments can remain before the managed block.
 - Allow callers to opt into relocating an existing managed block. Shell startup files use this because the managed source block must run before most hand-written or installer-written rc content. Git also uses relocation so the include remains near the top of the mutable config file.
-- Place the Git managed include near the top of the chosen mutable config file. Git applies config in file order, so this lets Nix provide defaults while later hand-written or tool-written top-level settings can override them.
+- Place Git managed includes near the top of mutable config files. Git applies config in file order, so this lets Nix provide defaults while later hand-written or tool-written settings in the final loaded file can override them.
 - Import the unmanaged bash, git, and zsh modules explicitly from `modules/home/core.nix`; avoid a `modules/home/programs/unmanaged/default.nix` that only hides a short module list.
 - In this Blueprint flake's module graph, Home Manager submodules receive `inputs`, so leaf modules should use `inputs.self.lib.home.*` for repo-local helpers instead of deep relative imports or `_module.args` plumbing.
-- Git pressure tests on Apple Git 2.50.1 show that normal Git config loading reads `~/.config/git/config` and `~/.gitconfig`, but `git config --global` has narrower behavior: it does not expand includes unless `--includes` is passed, and its write target depends on which global config file exists. Keep the Git include target configurable.
+- Git pressure tests on Apple Git 2.50.1 show that normal Git config loading reads `~/.config/git/config` and `~/.gitconfig`, but `git config --global` has narrower behavior: it does not expand includes unless `--includes` is passed, and its write target depends on which global config file exists. Keep the Git include targets configurable.
 
 ## Implementation Steps
 
 1. [ ] Inventory existing top-level zsh, bash, and git files and identify third-party mutation patterns.
 2. [x] Design a shared managed-block activation helper under `lib/home/`.
 3. [x] Sketch `programs.unmanaged.zsh` with separate entries for `.zshenv`, `.zprofile`, `.zshrc`, `.zlogin`, and `.zlogout`.
-4. [x] Sketch `programs.unmanaged.git` for a managed include block in either `~/.gitconfig` or `~/.config/git/config`.
+4. [x] Sketch `programs.unmanaged.git` for managed include blocks in both `~/.gitconfig` and `~/.config/git/config`.
 5. [x] Define generator/file-ownership assertions for bash, zsh, and git so native Home Manager modules can generate content without owning the mutable top-level files.
 6. [ ] Prototype one low-risk tool integration after the Dotter inventory is complete.
 
@@ -96,8 +97,9 @@ The desired middle ground is: conventional top-level files remain mutable and to
 - Home Manager's native bash module writes fixed top-level file bodies for `.bash_profile`, `.profile`, `.bashrc`, and `.bash_logout`. Unmanaged bash mirrors those formulas after `programs.bash` options have merged, then writes the result into `50-nix-managed.bash` hooks.
 - The user's ambient `/bin/bash` may be older than the Home Manager-provided bash package. Runtime validation should use the generated profile's `home-path/bin/bash`; native Home Manager bash content may use shell options or conditions that are not valid in Apple's old system bash.
 - For Git config, a near-top include is safer than an appended include because it makes the managed fragment behave like defaults. Existing top-level settings that appear later in `~/.gitconfig` or `~/.config/git/config` continue to win.
-- Home Manager's native Git module already produces the exact merged text we need at `xdg.configFile."git/config".text`. Unmanaged Git can reuse that text directly, then disable only the native file link so activation can manage a near-top include in the mutable global config.
-- Git validation should use `git config --global --includes`, because plain `git config --global` does not expand includes for reads. In the disposable test home, the near-top managed include provided Home Manager defaults, while later mutable top-level values still won for keys such as `user.name` and `core.editor`.
+- Home Manager's native Git module already produces the exact merged text we need at `xdg.configFile."git/config".text`. Unmanaged Git can reuse that text directly, then disable only the native file link so activation can manage near-top includes in mutable global config files.
+- Git validation should check both `git config --global --includes` and normal repository config loading. `--global` has narrower behavior and may show only one global file, while normal Git commands read both `~/.config/git/config` and `~/.gitconfig`.
+- Including `~/.config/git/config.d/50-nix-managed.conf` from both conventional files intentionally favors broad entrypoint coverage over strict de-duplication. When both files exist, normal Git loading reads the managed fragment twice; single-valued settings remain deterministic, but multi-valued settings such as credential helpers can appear twice, and the second include from `~/.gitconfig` can re-apply managed values after mutable `~/.config/git/config` entries.
 - Home Manager activation scripts should not rely on the user's ambient shell `PATH` for text-processing tools. The managed-block helper accepts an explicit `awk` executable path, and Home Manager modules pass `${pkgs.gawk}/bin/awk`.
 - The migration ladder is:
 	1. Top-level file mutable, Nix injects a marked include/source block.
@@ -132,6 +134,8 @@ The desired middle ground is: conventional top-level files remain mutable and to
 - [x] 2026-07-04 20:09 - Reworked unmanaged bash to use native Home Manager bash as a content generator, covering `.bash_profile`, `.profile`, `.bashrc`, and `.bash_logout` while keeping the top-level files mutable and dispatcher-only.
 - [x] 2026-07-04 20:16 - Reworked unmanaged Git to use native Home Manager Git as a content generator, copy the generated config into `~/.config/dotfiles-nix/git/config`, and force off only the native `~/.config/git/config` link.
 - [x] 2026-07-04 20:19 - Validated the disposable profile with lived-in bash and Git fixtures: Home Manager bash content, shell hooks, logout order, Git includes, repeated credential helpers, native ignore/attributes files, and later mutable Git overrides all behaved as expected.
+- [x] 2026-07-05 00:10 - Moved unmanaged Git's generated fragment to `~/.config/git/config.d/50-nix-managed.conf` and changed activation to wire both `~/.config/git/config` and `~/.gitconfig` into that shared fragment.
+- [x] 2026-07-05 00:13 - Validated the new Git config.d layout in a fresh disposable home with both conventional files present; normal Git loading reads both include sites and therefore reads the managed fragment twice.
 
 ## Unfinished Work
 

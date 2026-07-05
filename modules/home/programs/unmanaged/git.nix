@@ -10,13 +10,16 @@ let
   inherit (lib)
     concatStringsSep
     filter
+    listToAttrs
     mkDefault
     mkEnableOption
     mkForce
     mkIf
     mkMerge
     mkOption
+    nameValuePair
     optionalString
+    replaceStrings
     types
     ;
 
@@ -41,6 +44,13 @@ let
       cfg.managedConfig
     ]
   );
+
+  includeBlock = ''
+    [include]
+        path = ~/${cfg.managedConfigPath}
+  '';
+
+  activationNameForTarget = target: "unmanaged-git-${replaceStrings [ "." "/" ] [ "" "-" ] target}";
 in
 {
   options.programs.unmanaged.git = {
@@ -65,23 +75,42 @@ in
       default = "";
       description = ''
         Additional Nix-managed Git config appended after the generated
-        Home Manager Git config in ~/.config/dotfiles-nix/git/config.
+        Home Manager Git config in the managed config.d fragment.
       '';
     };
 
-    includeTarget = mkOption {
-      type = types.enum [
-        ".gitconfig"
-        ".config/git/config"
-      ];
-      default = ".gitconfig";
+    managedConfigPath = mkOption {
+      type = types.str;
+      default = ".config/git/config.d/50-nix-managed.conf";
       description = ''
-        Mutable Git config file that should receive the managed include block.
+        Path, relative to the home directory, for the generated Git config
+        fragment that conventional Git config files include.
+      '';
+    };
+
+    includeTargets = mkOption {
+      type = types.listOf (
+        types.enum [
+          ".gitconfig"
+          ".config/git/config"
+        ]
+      );
+      default = [
+        ".config/git/config"
+        ".gitconfig"
+      ];
+      description = ''
+        Mutable Git config files that should receive the managed include block.
 
         Git reads both ~/.config/git/config and ~/.gitconfig for normal
         config loading, with later values winning. Git's own `git config
         --global` write target depends on which of those files already
-        exists, so this option keeps the coexistence boundary explicit.
+        exists, so unmanaged git can keep both conventional entrypoints wired
+        into the same generated config.d fragment.
+
+        If both files exist, Git will read the generated fragment from both
+        include sites. Single-valued settings remain deterministic, but
+        multi-valued settings such as credential helpers may appear twice.
       '';
     };
   };
@@ -118,28 +147,32 @@ in
       xdg.configFile."git/config".enable = mkForce false;
     })
     {
-      home.file.".config/dotfiles-nix/git/config".text = managedGitConfigText;
+      home.file.${cfg.managedConfigPath}.text = managedGitConfigText;
 
-      home.activation.unmanaged-git-gitconfig = managedBlock.mkActivation {
-        name = "git gitconfig";
-        target = cfg.includeTarget;
-        block = ''
-          [include]
-              path = ~/.config/dotfiles-nix/git/config
-        '';
-        placement = {
-          # Git applies config in file order, and later entries override
-          # earlier ones. Put the managed include near the top so ordinary
-          # hand-written or tool-written config in ~/.gitconfig can still
-          # override the Nix-managed defaults below it.
-          mode = "after-preamble";
-          relocateExisting = true;
-          preambleLineRegexes = [
-            "^#"
-            "^[[:space:]]*$"
-          ];
-        };
-      };
+      home.activation = listToAttrs (
+        map (
+          target:
+          nameValuePair (activationNameForTarget target) (
+            managedBlock.mkActivation {
+              name = "git ${target}";
+              inherit target;
+              block = includeBlock;
+              placement = {
+                # Git applies config in file order, and later entries override
+                # earlier ones. Put the managed include near the top so
+                # ordinary hand-written or tool-written config in the same file
+                # can still override the Nix-managed defaults below it.
+                mode = "after-preamble";
+                relocateExisting = true;
+                preambleLineRegexes = [
+                  "^#"
+                  "^[[:space:]]*$"
+                ];
+              };
+            }
+          )
+        ) cfg.includeTargets
+      );
     }
   ]);
 }
