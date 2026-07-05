@@ -1,5 +1,4 @@
 {
-  config,
   pkgs,
   ...
 }:
@@ -117,30 +116,4 @@
     pkgs.gum
     pkgs.jq
   ];
-
-  # Home Manager will replace the existing hand-written root config file.
-  home.file."${config.xdg.configHome}/jj/config.toml".force = true;
-
-  # jj automatically loads `conf.d/*.toml` after `config.toml`. The old Dotter
-  # setup put the real config there, so leaving those symlinks in place would
-  # keep Dotter active and could override the generated Home Manager config.
-  # These small managed files replace the legacy symlinks with harmless notes.
-  xdg.configFile."jj/conf.d/01_defaults.toml" = {
-    force = true;
-    text = ''
-      # Migrated into Home Manager: programs.jujutsu.settings.
-    '';
-  };
-  xdg.configFile."jj/conf.d/10_custom_cmds.toml" = {
-    force = true;
-    text = ''
-      # Migrated into Home Manager: programs.jujutsu.settings.aliases.
-    '';
-  };
-  xdg.configFile."jj/conf.d/10_custom_logs.toml" = {
-    force = true;
-    text = ''
-      # Migrated into Home Manager: programs.jujutsu.settings template aliases.
-    '';
-  };
 }

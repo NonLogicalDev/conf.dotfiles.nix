@@ -1,83 +1,77 @@
 {
+  config,
+  lib,
   pkgs,
   ...
 }:
 
 let
-  # These commands are host-user operational helpers, not reusable repo
-  # packages. Keeping them local to the Atuin Home Manager profile makes that
-  # ownership explicit while still installing real executables.
+  server = rec {
+    label = "org.nix-community.home.atuin-server";
+    host = "127.0.0.1";
+    port = "45654";
+    dataDir = "${config.xdg.dataHome}/atuin";
+    databaseUri = "sqlite://${dataDir}/server.db";
+    logDir = "${config.home.homeDirectory}/Library/Logs/atuin";
+  };
+
+  # The server should be Nix-managed now that Atuin itself is Nix-managed. The
+  # launchd runner creates mutable data/log directories and then execs the Atuin
+  # server from the same package Home Manager installs for the client.
+  atuinServerLaunchd = pkgs.writeShellApplication {
+    name = "atuin-server-launchd";
+
+    text = ''
+      /bin/mkdir -p "${server.dataDir}" "${server.logDir}"
+      exec ${lib.getExe config.programs.atuin.package} server start \
+        --host "${server.host}" \
+        --port "${server.port}"
+    '';
+  };
+
+  # These commands control the launchd agent. They are host-user operational
+  # helpers, not reusable repo packages, so they stay local to this Home Manager
+  # profile.
   atuinServerTools =
     let
-      image = "ghcr.io/atuinsh/atuin:v18.10.0";
-      containerName = "atuin-server";
-      hostAddress = "127.0.0.1";
-      hostPort = "45654";
-      containerPort = "8888";
-      dataSubdir = ".local/share/atuin";
-      databaseUri = "sqlite:///data/atuin-server.db";
-      rustLog = "info,atuin_server=debug";
-
       atuinServerUp = pkgs.writeShellApplication {
         name = "atuin-server-up";
-        runtimeInputs = [ pkgs.docker-client ];
 
         text = ''
-          container_name="''${ATUIN_SERVER_CONTAINER_NAME:-${containerName}}"
-          image="''${ATUIN_SERVER_IMAGE:-${image}}"
-          host_address="''${ATUIN_SERVER_HOST_ADDRESS:-${hostAddress}}"
-          host_port="''${ATUIN_SERVER_HOST_PORT:-${hostPort}}"
-          container_port="''${ATUIN_SERVER_CONTAINER_PORT:-${containerPort}}"
-          data_dir="''${ATUIN_SERVER_DATA_DIR:-$HOME/${dataSubdir}}"
-          open_registration="''${ATUIN_SERVER_OPEN_REGISTRATION:-true}"
-          database_uri="''${ATUIN_SERVER_DB_URI:-${databaseUri}}"
-          rust_log="''${ATUIN_SERVER_RUST_LOG:-${rustLog}}"
+          uid="$(/usr/bin/id -u)"
+          domain="user/$uid"
+          label="${server.label}"
+          plist="$HOME/Library/LaunchAgents/$label.plist"
 
-          mkdir -p "$data_dir"
-
-          if docker container inspect "$container_name" >/dev/null 2>&1; then
-            if [ "$(docker inspect --format '{{.State.Running}}' "$container_name")" = "true" ]; then
-              echo "$container_name is already running"
-              exit 0
-            fi
-
-            docker start "$container_name"
-            exit 0
+          if [ ! -r "$plist" ]; then
+            echo >&2 "Missing launchd plist: $plist"
+            echo >&2 "Run Home Manager activation before starting the Atuin server."
+            exit 1
           fi
 
-          docker run \
-            --detach \
-            --name "$container_name" \
-            --restart unless-stopped \
-            --publish "$host_address:$host_port:$container_port" \
-            --volume "$data_dir:/data" \
-            --env ATUIN_HOST=0.0.0.0 \
-            --env "ATUIN_PORT=$container_port" \
-            --env "ATUIN_OPEN_REGISTRATION=$open_registration" \
-            --env "ATUIN_DB_URI=$database_uri" \
-            --env "RUST_LOG=$rust_log" \
-            "$image" \
-            server start
+          if ! /bin/launchctl print "$domain/$label" >/dev/null 2>&1; then
+            /bin/launchctl bootstrap "$domain" "$plist"
+          fi
+
+          /bin/launchctl kickstart -k "$domain/$label"
+          /bin/launchctl print "$domain/$label"
         '';
       };
 
       atuinServerDown = pkgs.writeShellApplication {
         name = "atuin-server-down";
-        runtimeInputs = [ pkgs.docker-client ];
 
         text = ''
-          container_name="''${ATUIN_SERVER_CONTAINER_NAME:-${containerName}}"
+          uid="$(/usr/bin/id -u)"
+          domain="user/$uid"
+          label="${server.label}"
 
-          if ! docker container inspect "$container_name" >/dev/null 2>&1; then
-            echo "$container_name does not exist"
+          if ! /bin/launchctl print "$domain/$label" >/dev/null 2>&1; then
+            echo "$label is not loaded"
             exit 0
           fi
 
-          if [ "$(docker inspect --format '{{.State.Running}}' "$container_name")" = "true" ]; then
-            docker stop "$container_name"
-          fi
-
-          docker rm "$container_name"
+          /bin/launchctl bootout "$domain/$label"
         '';
       };
     in
@@ -95,17 +89,6 @@ in
   # those preferences directly, so we avoid copying the whole generated TOML.
   programs.atuin = {
     enable = true;
-
-    # The profile already uses zsh as the active interactive shell. Fish had an
-    # old Dotter `atuin init fish` snippet, but fish itself is not being migrated
-    # in this slice.
-    enableZshIntegration = true;
-    enableBashIntegration = false;
-    enableFishIntegration = false;
-
-    # The existing `~/.config/atuin/config.toml` is a Dotter symlink. Taking
-    # ownership here lets Home Manager replace that symlink during activation.
-    forceOverwriteSettings = true;
 
     settings = {
       # Preserve the behavioral fact that Atuin syncs against a local server.
@@ -160,10 +143,29 @@ in
     };
   };
 
-  # Local server operation is exposed as explicit commands instead of migrated
-  # Dotter helper files. This preserves the useful behavior while keeping the
-  # Atuin client config declarative and compact.
+  # Local server operation is exposed as explicit commands backed by a launchd
+  # agent. The Atuin client config stays declarative and compact.
   home.packages = [
     atuinServerTools
   ];
+
+  launchd.agents.atuin-server = {
+    enable = true;
+    domain = "user";
+    config = {
+      ProgramArguments = [ (lib.getExe atuinServerLaunchd) ];
+      EnvironmentVariables = {
+        ATUIN_DB_URI = server.databaseUri;
+        ATUIN_OPEN_REGISTRATION = "true";
+        RUST_LOG = "info,atuin_server=debug";
+      };
+      KeepAlive = {
+        Crashed = true;
+        SuccessfulExit = false;
+      };
+      ProcessType = "Background";
+      StandardOutPath = "${server.logDir}/launchd-stdout.log";
+      StandardErrorPath = "${server.logDir}/launchd-stderr.log";
+    };
+  };
 }

@@ -19,10 +19,20 @@ in
   # `shell-zsh` contains the zsh implementation details. This parent module is
   # for shell-adjacent tools and cross-shell policy.
   imports = [
+    ./shell-fish
     ./shell-zsh
   ];
 
   programs = {
+    # Shell integration toggles live with shell policy, not with the app's core
+    # client settings. Zsh is the primary shell; fish is kept as a lightweight
+    # compatibility shell because Atuin has native fish integration.
+    atuin = {
+      enableZshIntegration = true;
+      enableFishIntegration = true;
+      enableBashIntegration = false;
+    };
+
     # Better pager-friendly file preview. The zsh alias file maps `cat` to this
     # package for interactive reads, but the program itself is shell-neutral.
     bat.enable = true;

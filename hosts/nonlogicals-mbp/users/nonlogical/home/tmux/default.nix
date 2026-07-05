@@ -27,14 +27,11 @@
     extraConfig = builtins.readFile ./extra.conf;
   };
 
-  # The live Dotter setup owns top-level `~/.tmux.conf`. Home Manager writes the
-  # real config to `~/.config/tmux/tmux.conf`; this small bridge keeps tmux
-  # startup compatible and gives activation permission to replace the Dotter
-  # symlink.
+  # Home Manager writes the real config to `~/.config/tmux/tmux.conf`; this
+  # small bridge keeps ordinary tmux startup compatible with that XDG location.
   home.file.".tmux.conf" = {
     text = ''
       source-file ~/.config/tmux/tmux.conf
     '';
-    force = true;
   };
 }

@@ -49,13 +49,13 @@ This repository already uses the host-user convention `hosts/nonlogicals-mbp/use
 - Prefer Home Manager native options for `tmux`, `jj`, `atuin`, `fish`, and `vifm` if the available module support is good enough.
 - Package scripts only after reading their dependencies and current value. A stale script should be deferred or removed from scope instead of being made official by Nix.
 - Keep this migration host-user scoped first. Promote reusable suites or modules only after the same pattern appears more than once.
+- Assume the target Home Manager activation happens on a clean home for each migrated path. Existing Dotter symlinks and copied files are migration cleanup chores to record in this plan, not compatibility behavior to encode in Nix modules.
 - Migrate Atuin first. Its Dotter config is mostly generated comments plus a small set of real preferences, so `programs.atuin.settings` can convey the actual behavior without copying the full TOML file.
 - Let Atuin own shell history search on Ctrl-R. Keep `programs.fzf` enabled, but set `programs.fzf.historyWidget.command = ""` so fzf does not compete with Atuin's zsh integration.
-- Defer Atuin fish integration until the fish slice. The old fish Dotter file only ran `atuin init fish`, but this repo has not yet decided whether Home Manager should own fish as a secondary shell.
-- Keep the Atuin slice focused on client behavior. Local service/dev helpers such as `Justfile` and `compose.yml` are not migrated into Home Manager unless a later system/service slice intentionally owns the Atuin server.
-- Expose Atuin local server control through the Atuin Home Manager profile, not `packages/`. `atuin-server-up` and `atuin-server-down` carry the useful behavior of the old Compose/Justfile setup while keeping operational defaults overridable through environment variables. The top-level `packages/` tree is reserved for reusable tools.
-- Migrate tmux through Home Manager's native `programs.tmux` options plus one focused `extra.conf` file for status bar and keybinding behavior. Keep a top-level `.tmux.conf` bridge that sources the XDG config so tmux startup remains compatible while Home Manager replaces the old Dotter symlink.
-- Migrate Jujutsu through Home Manager's native `programs.jujutsu.settings` as the source of truth for `~/.config/jj/config.toml`. The old Dotter `conf.d` files become small Home Manager-owned tombstone files so jj does not continue loading stale Dotter symlinks after activation.
+- Enable Atuin fish integration in the shell slice. Fish is a secondary compatibility shell, but Home Manager can emit the native Atuin fish hook without preserving handwritten `conf.d` snippets.
+- Replace the Docker-based Atuin server helper with a native Nix-managed Atuin server. Home Manager installs `atuin-server-up` and `atuin-server-down` as host-user helper commands backed by a launchd agent that runs `atuin server start` from the Nix Atuin package.
+- Migrate tmux through Home Manager's native `programs.tmux` options plus one focused `extra.conf` file for status bar and keybinding behavior. Keep a top-level `.tmux.conf` bridge that sources the XDG config so ordinary tmux startup finds the Home Manager config.
+- Migrate Jujutsu through Home Manager's native `programs.jujutsu.settings` as the source of truth for `~/.config/jj/config.toml`. Do not manage old `conf.d` tombstone files; on a clean target, no extra `conf.d` files should exist unless a future conditional-config slice intentionally creates them.
 - Keep mutable Jujutsu repository metadata under `~/.config/jj/repos/` unmanaged. That directory is application state, not durable profile configuration.
 - Keep `jq`, `gum`, and `git` as dependencies of the Jujutsu user profile because several migrated `jj` aliases shell out to them. Do not promote them into a broad common package list from this slice alone.
 
@@ -80,12 +80,14 @@ This repository already uses the host-user convention `hosts/nonlogicals-mbp/use
 - Atuin's durable client settings are compact: local sync server URL, session-scoped up-key filter mode, return-query escape behavior, `enter_accept = false`, stats grouping, `sudo` prefix stripping, and sync-v2 records. Home Manager renders these cleanly into generated TOML.
 - The Atuin local server `Justfile` and `compose.yml` are not client settings. They are excluded from this Home Manager slice; the essential client behavior is the local `sync_address`.
 - Enabling Atuin zsh integration while fzf zsh integration is enabled requires disabling fzf's Ctrl-R history widget. Home Manager documents `programs.fzf.historyWidget.command = ""` as the supported way to yield Ctrl-R to Atuin.
-- The Atuin server helper does not belong under `packages/` because it is host-user operational glue, not a reusable program. It lives inline in `home/atuin/default.nix`, produces real `atuin-server-up` and `atuin-server-down` commands, and keeps mutable operational values configurable with `ATUIN_SERVER_*` environment variables.
+- The Atuin server helper does not belong under `packages/` because it is host-user operational glue, not a reusable program. It lives inline in `home/atuin/default.nix`, produces real `atuin-server-up` and `atuin-server-down` commands, and controls a Home Manager launchd agent running `atuin server start` directly from the Nix package.
+- The Nix-managed Atuin server uses `ATUIN_DB_URI=sqlite:///Users/nonlogical/.local/share/atuin/server.db`, `ATUIN_OPEN_REGISTRATION=true`, and `RUST_LOG=info,atuin_server=debug`; the client continues to sync against `http://127.0.0.1:45654`.
 - The live tmux setup had both `~/.tmux.conf` and `~/.config/tmux/` as Dotter symlinks. Home Manager writes `~/.config/tmux/tmux.conf`; a small top-level bridge is enough to preserve tmux startup behavior without keeping duplicate config.
 - The old tmux `init.sh` and `bin/hooks/tmux/on-start.sh` are not active tmux configuration. The `init.sh` only handled `reattach-to-user-namespace`, so it is not migrated in this slice.
 - The tmux migration intentionally fixes the old `copy-modj-vi` typo by binding `y` in `copy-mode-vi`, matching the intended behavior rather than the exact old file.
-- Jujutsu loads global config in this order: `~/.jjconfig.toml`, `~/.config/jj/config.toml`, then `~/.config/jj/conf.d/*.toml`. Managing only `config.toml` would not disable the old Dotter `conf.d` symlinks, so the migration also owns the three legacy `conf.d` paths with comment-only files.
+- Jujutsu loads global config in this order: `~/.jjconfig.toml`, `~/.config/jj/config.toml`, then `~/.config/jj/conf.d/*.toml`. Because the migration assumes a clean target, old Dotter `conf.d` symlinks should be removed before activation instead of being shadowed with Home Manager tombstone files.
 - Home Manager merges option values across imported Nix modules. Defining the same list-valued alias, such as `aliases.lg`, in two imported modules concatenates the command arrays instead of replacing the alias. Each `jj` alias should have a single owner module unless `lib.mkForce` is used intentionally.
+- Existing-machine cleanup before activating the migrated profiles: remove Dotter-owned links/files for `~/.config/atuin/config.toml`, `~/.tmux.conf`, `~/.config/tmux`, `~/.config/jj/config.toml`, `~/.config/jj/conf.d`, and `~/.config/fish`; stop/remove any old Docker `atuin-server` container if it exists.
 
 ## Work Log
 
@@ -98,8 +100,10 @@ This repository already uses the host-user convention `hosts/nonlogicals-mbp/use
 - [x] 2026-07-05 01:16 - Added the tmux Home Manager profile with native options, focused `extra.conf`, and a top-level `.tmux.conf` bridge.
 - [x] 2026-07-05 01:22 - Verified the generated tmux files, parsed the generated config with an isolated tmux socket, and reran `nix flake check`.
 - [x] 2026-07-05 01:29 - Added the Jujutsu Home Manager profile, replaced legacy `conf.d` symlinks with managed tombstones, validated generated config through `jj config list`, and reran `nix flake check`.
+- [x] 2026-07-05 01:35 - Removed Dotter compatibility behavior from the Atuin, Jujutsu, tmux, and fish modules, added the clean-system cleanup notes, and replaced the Docker Atuin server helper with a launchd-backed native Atuin server.
 
 ## Unfinished Work
 
-- [ ] Decide whether the next app slice should be `vifm`, fish compatibility, or script packaging.
+- [ ] Before activating on the existing machine, clean the Dotter-owned paths listed in the learning log so Home Manager can own the clean target paths without `force` or tombstone compatibility.
+- [ ] Decide whether the next app slice should be `vifm` or script packaging.
 - [ ] Review `common/bin` and `common/git/bin` helper scripts command by command before converting any into Blueprint packages.
