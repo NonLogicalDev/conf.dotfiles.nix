@@ -15,6 +15,19 @@ The flake is Blueprint-native and is intended to grow into three system-profile 
 - NixOS for full Nix-managed hosts.
 - `system-manager` for non-NixOS systems where Nix should manage selected system state.
 
+## Organization Sketch
+
+Use Blueprint's folders by what they produce:
+
+- `packages/` contains derivations and other buildable artifacts.
+- `modules/home/programs/` contains lower-level Home Manager integrations for one program.
+- `modules/home/suites/` contains higher-level Home Manager compositions that enable multiple programs or integrations together.
+- `modules/darwin/`, `modules/nixos/`, and `modules/system-manager/` contain shared system modules.
+- `hosts/<host>/` contains host-specific system facts and the per-user enablement choices for that host.
+- `lib/` contains Nix-native helper functions and data that do not produce artifacts by themselves.
+
+Prefer `lib/` for reusable Nix helpers such as option builders, naming helpers, small module constructors, shared predicates, or data normalization. If it grows, split it by namespace, for example `lib/home/`, `lib/packages/`, or `lib/hosts/`, then re-export those helpers from `lib/default.nix`.
+
 ## Starting Principles
 
 - Take small, reviewable steps.

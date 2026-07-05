@@ -28,6 +28,7 @@ The current dotfiles situation is treated as a working but chaotic garden. This 
 - Keep shared modules free of personal host/user constants; user identity should live at the host/profile boundary until we introduce a cleaner abstraction.
 - Keep home modules explicitly light during bootstrap; do not add common packages until inventory shows what should be owned.
 - Add `system-manager` as an available system-profile target, but wait to create a `system-configuration.nix` host until there is a real non-NixOS system to model.
+- Use `lib/` for Nix-native helpers that do not produce artifacts; keep buildable artifacts in `packages/` and configurable behavior in `modules/`.
 
 ## Implementation Steps
 
@@ -51,6 +52,7 @@ The current dotfiles situation is treated as a working but chaotic garden. This 
 - Do not hardcode `system.primaryUser` in the shared Darwin core module.
 - `modules/home/core.nix` should not install common packages yet. Package ownership should come after the Dotter/dotfiles inventory.
 - Blueprint maps `hosts/<hostname>/system-configuration.nix` to `systemConfigs.<hostname>` when the `system-manager` input is present.
+- Blueprint exposes `lib/default.nix` as `flake.lib`, making it the right place for reusable Nix helper functions and non-artifact data.
 
 ## Work Log
 
@@ -62,6 +64,7 @@ The current dotfiles situation is treated as a working but chaotic garden. This 
 - [x] 2026-07-04 17:03 - Validated the direct Blueprint scaffold with `nix flake check`.
 - [x] 2026-07-04 17:12 - Removed the provisional common package list from the shared home module.
 - [x] 2026-07-04 17:18 - Added the `system-manager` input and a light shared module placeholder.
+- [x] 2026-07-04 17:34 - Documented the planned `lib/` slot for Nix-native helpers.
 
 ## Unfinished Work
 
