@@ -42,6 +42,8 @@ Prefer `lib/` for reusable Nix helpers such as option builders, naming helpers, 
 - Higher-level Home Manager bundles belong under `modules/home/suites/<name>/`.
 - `hosts/<host>/users/<username>/home-configuration.nix` should choose what to enable for that user on that host; reusable behavior belongs in modules.
 - `users.users.<name>.home` is a nix-darwin system option and belongs in the Darwin host layer, not inside Home Manager modules.
+- In this Blueprint flake's module graph, `inputs` is available in submodules. Use `inputs.self.lib.*` for repo-local helpers instead of deep relative imports such as `../../../../lib/...`.
+- Do not use `_module.args` merely to thread repo-local helper libraries into submodules when `inputs.self.lib.*` is available.
 
 ## Validation
 

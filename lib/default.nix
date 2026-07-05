@@ -2,7 +2,7 @@
 
 {
   home = {
-    managedBlock = import ./home/managed-block.nix;
+    hmManagedBlock = import ./home/hm-managed-block.nix;
     unmanagedProgram = import ./home/unmanaged-program.nix;
   };
 }

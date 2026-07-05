@@ -1,4 +1,9 @@
-{ config, lib, ... }:
+{
+  config,
+  inputs,
+  lib,
+  ...
+}:
 
 let
   inherit (lib)
@@ -8,7 +13,7 @@ let
     ;
 
   cfg = config.programs.unmanaged.bash;
-  unmanagedProgram = import ../../../../lib/home/unmanaged-program.nix { inherit lib; };
+  unmanagedProgram = inputs.self.lib.home.unmanagedProgram { inherit lib; };
 in
 {
   options.programs.unmanaged.bash = {

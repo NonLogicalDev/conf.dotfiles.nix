@@ -1,4 +1,9 @@
-{ config, lib, ... }:
+{
+  config,
+  inputs,
+  lib,
+  ...
+}:
 
 let
   inherit (lib)
@@ -10,8 +15,8 @@ let
     ;
 
   cfg = config.programs.unmanaged.git;
-  managedBlock = import ../../../../lib/home/managed-block.nix { inherit lib; };
-  unmanagedProgram = import ../../../../lib/home/unmanaged-program.nix { inherit lib; };
+  hmManagedBlock = inputs.self.lib.home.hmManagedBlock { inherit lib; };
+  unmanagedProgram = inputs.self.lib.home.unmanagedProgram { inherit lib; };
 in
 {
   options.programs.unmanaged.git = {
@@ -35,7 +40,7 @@ in
     {
       home.file.".config/dotfiles-nix/git/config".text = cfg.managedConfig;
 
-      home.activation.unmanaged-git-gitconfig = managedBlock.mkActivation {
+      home.activation.unmanaged-git-gitconfig = hmManagedBlock.mkActivation {
         name = "git gitconfig";
         target = ".gitconfig";
         block = ''

@@ -12,10 +12,24 @@ in
       target,
       block,
       after ? [ "writeBoundary" ],
+      comment ? { },
     }:
     let
-      begin = "# BEGIN ${markerPrefix} ${name}";
-      end = "# END ${markerPrefix} ${name}";
+      commentPrefix = comment.prefix or "#";
+      commentSuffix = comment.suffix or "";
+      mkMarker =
+        label:
+        lib.concatStringsSep " " (
+          lib.filter (part: part != "") [
+            commentPrefix
+            label
+            markerPrefix
+            name
+            commentSuffix
+          ]
+        );
+      begin = mkMarker "BEGIN";
+      end = mkMarker "END";
       fullBlock = stripTrailingNewline ''
         ${begin}
         ${stripTrailingNewline block}
