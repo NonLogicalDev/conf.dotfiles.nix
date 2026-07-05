@@ -27,6 +27,7 @@ The current dotfiles situation is treated as a working but chaotic garden. This 
 - Start with one current-machine Darwin scaffold named `nonlogicals-mbp`, plus shared module locations for future user and system profiles.
 - Keep shared modules free of personal host/user constants; user identity should live at the host/profile boundary until we introduce a cleaner abstraction.
 - Keep home modules explicitly light during bootstrap; do not add common packages until inventory shows what should be owned.
+- Add `system-manager` as an available system-profile target, but wait to create a `system-configuration.nix` host until there is a real non-NixOS system to model.
 
 ## Implementation Steps
 
@@ -49,6 +50,7 @@ The current dotfiles situation is treated as a working but chaotic garden. This 
 - Blueprint's Darwin/home-manager wiring derives the home-manager user's home directory from the Darwin user; do not duplicate `home.homeDirectory` inside the host user home profile.
 - Do not hardcode `system.primaryUser` in the shared Darwin core module.
 - `modules/home/core.nix` should not install common packages yet. Package ownership should come after the Dotter/dotfiles inventory.
+- Blueprint maps `hosts/<hostname>/system-configuration.nix` to `systemConfigs.<hostname>` when the `system-manager` input is present.
 
 ## Work Log
 
@@ -59,6 +61,7 @@ The current dotfiles situation is treated as a working but chaotic garden. This 
 - [x] 2026-07-04 17:03 - Removed hardcoded `system.primaryUser` from the shared Darwin module.
 - [x] 2026-07-04 17:03 - Validated the direct Blueprint scaffold with `nix flake check`.
 - [x] 2026-07-04 17:12 - Removed the provisional common package list from the shared home module.
+- [x] 2026-07-04 17:18 - Added the `system-manager` input and a light shared module placeholder.
 
 ## Unfinished Work
 

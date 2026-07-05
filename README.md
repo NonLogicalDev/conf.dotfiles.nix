@@ -9,6 +9,12 @@ The goal is not to port everything at once. The first phase is inventory and bou
 - Decide which parts belong in Nix, which parts should stay as app state, and which parts should be deleted.
 - Introduce Nix modules only after the current behavior is understood.
 
+The flake is Blueprint-native and is intended to grow into three system-profile targets over time:
+
+- `nix-darwin` for macOS machines.
+- NixOS for full Nix-managed hosts.
+- `system-manager` for non-NixOS systems where Nix should manage selected system state.
+
 ## Starting Principles
 
 - Take small, reviewable steps.
@@ -20,4 +26,3 @@ The goal is not to port everything at once. The first phase is inventory and bou
 ## Current Status
 
 Bootstrapped with an empty `INIT` commit, then this README and the first `$Tasker_Plan` file. Next step is a read-only inventory of the current Dotter layout and existing dotfiles.
-

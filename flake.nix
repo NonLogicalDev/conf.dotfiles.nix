@@ -12,8 +12,10 @@
 
     nix-darwin.url = "github:nix-darwin/nix-darwin";
     nix-darwin.inputs.nixpkgs.follows = "nixpkgs";
+
+    system-manager.url = "github:numtide/system-manager";
+    system-manager.inputs.nixpkgs.follows = "nixpkgs";
   };
 
   outputs = inputs: inputs.blueprint { inherit inputs; };
 }
-
