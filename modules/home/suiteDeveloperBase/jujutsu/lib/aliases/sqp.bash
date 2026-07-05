@@ -9,4 +9,5 @@
 #   Writes normal `jj squash` output.
 # Side effects:
 #   Rewrites the current JJ change and its parent.
+
 jj squash --use-destination-message --from "@" --to "@-"

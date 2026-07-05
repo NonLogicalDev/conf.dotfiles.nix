@@ -8,6 +8,7 @@
 #   Writes the bookmark picker and any `jj send` output to the terminal.
 # Side effects:
 #   Delegates to `jj send`, which may force-push a Git ref.
+
 jji() { jj --ignore-working-copy "$@"; }
 
 jj_local_bookmarks=$(jji log -GT 'json(self.bookmarks())' -r 'bookmarks() & mine()' | jq -r '.[]|.name' | grep -v "/jj-publish/")

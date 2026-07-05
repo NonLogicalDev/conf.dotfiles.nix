@@ -13,6 +13,7 @@
 #   to the terminal.
 # Side effects:
 #   Force-pushes one Git ref to the selected remote namespace.
+
 jji() { jj --ignore-working-copy "$@"; }
 
 jj_ref="${1:-@}"

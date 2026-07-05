@@ -9,4 +9,5 @@
 #   Writes normal `jj squash` output.
 # Side effects:
 #   Rewrites the current JJ stack.
+
 jj squash --use-destination-message --from "closest_bookmark(@)..@" --to "closest_bookmark(@)"

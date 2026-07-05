@@ -10,6 +10,7 @@
 #   and the repair command when both commits are equivalent.
 # Side effects:
 #   No repository mutations; this only reads JJ/Git state and may page a diff.
+
 jj_ref="${1:-@}"
 
 jj_commit_ids=$(jj --ignore-working-copy log -r "change_id($(jj id $jj_ref))" -GT 'separate("\t", self.change_id(), commit_timestamp(self), self.commit_id()) ++ "\n"' | sort -n)

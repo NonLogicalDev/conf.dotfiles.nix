@@ -6,6 +6,7 @@
 #   No positional inputs; reads the current JJ repository state.
 # Outputs:
 #   Writes one bookmark name, or an empty line when none is reachable.
+
 jj --ignore-working-copy log \
   -n 1 -G \
   -r 'bookmarks() & ::@' \

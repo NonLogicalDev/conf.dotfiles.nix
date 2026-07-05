@@ -9,6 +9,7 @@
 # Outputs:
 #   Writes a JJ diff to stdout, or an error message if either bookmark cannot
 #   be resolved.
+
 _jji () { jj --ignore-working-copy "$@"; }
 
 jj_bm_a="$1" jj_bm_b="$2"
