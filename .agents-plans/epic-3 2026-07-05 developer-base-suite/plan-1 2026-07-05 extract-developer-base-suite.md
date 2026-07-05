@@ -8,7 +8,7 @@ subject: extract-developer-base-suite
 
 ## Goal
 
-Create a reusable Home Manager developer base suite from the current host-user configuration without starting the implementation in this planning step.
+Create a reusable Home Manager developer base suite from the current host-user configuration.
 
 The suite should carry the reusable essence of the migrated development environment across macOS and Linux, while keeping personal and machine-specific identity values configurable at the host/user boundary. The target outcome is that a future macOS or Linux user profile can opt into the same developer baseline without copying `hosts/nonlogicals-mbp/users/nonlogical/home/*` or hardcoding `nonlogical`, `/Users/nonlogical`, Git identity, or Jujutsu identity inside reusable modules.
 
@@ -29,7 +29,7 @@ Known hardcoded identity surfaces at the start of this epic include:
 
 The target suite must work for both Darwin and Linux Home Manager users. Darwin-only system facts stay in `hosts/<host>/darwin-configuration.nix`; Linux-specific system facts should stay in a future NixOS or standalone Home Manager host layer. Reusable Home Manager behavior should live under Blueprint's shared module area, not under one machine's `hosts/nonlogicals-mbp/users/nonlogical/home/` tree.
 
-This plan intentionally creates the epic and design scope only. Do not move modules, change identities, or rewrite the profile as part of creating this plan.
+This plan starts with design and inventory because the existing host-user tree mixes reusable behavior with personal facts. Implementation should proceed in small extraction slices after the reusable option surface is clear.
 
 ## Product Integration
 
@@ -48,7 +48,7 @@ This plan intentionally creates the epic and design scope only. Do not move modu
 - Prefer `config.home.username` and `config.home.homeDirectory` when Home Manager already knows the current user. Add suite options only when the suite needs a value that Home Manager does not already model clearly, such as Git/JJ identity defaults or profile-specific feature toggles.
 - Git and Jujutsu identity must be configurable independently. Do not assume both tools use the same email address, because the current profile already uses different Git and Jujutsu emails.
 - Make the suite cross-platform by default. Use `pkgs.stdenv.isDarwin` or platform-specific module conditionals only where behavior truly differs between macOS and Linux.
-- Do not start implementation in this plan creation step. The next work should begin with an inventory of all host-user files that contain personal literals, OS assumptions, or reusable behavior trapped in the host tree.
+- Begin implementation with an inventory of all host-user files that contain personal literals, OS assumptions, or reusable behavior trapped in the host tree.
 
 ## Implementation Steps
 
@@ -70,7 +70,8 @@ This plan intentionally creates the epic and design scope only. Do not move modu
 
 ## Work Log
 
-- [x] 2026-07-05 02:17 - Created the developer base suite epic and initial self-contained plan without starting implementation.
+- [x] 2026-07-05 02:17 - Created the developer base suite epic and initial self-contained plan.
+- [x] 2026-07-05 02:20 - Removed turn-specific planning language so the plan describes project sequencing rather than freezing implementation.
 
 ## Unfinished Work
 
