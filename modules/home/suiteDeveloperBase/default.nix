@@ -39,10 +39,11 @@
       };
 
       slug = lib.mkOption {
-        type = lib.types.str;
+        type = lib.types.strMatching "[A-Za-z0-9._-]+";
         description = ''
           Short source-control identity slug used for personal namespaces, such
-          as Jujutsu bookmark globs derived as `<slug>/*`.
+          as Jujutsu bookmark globs derived as `<slug>/*`. This must be one
+          namespace segment: no slashes, quotes, glob characters, or whitespace.
         '';
       };
     };

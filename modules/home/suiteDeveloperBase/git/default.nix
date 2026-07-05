@@ -12,14 +12,15 @@ let
   aliases = import ./cfg-aliases.nix;
   ignorePatterns = import ./cfg-ignore-patterns.nix;
   settings = import ./cfg-settings.nix { inherit config lib pkgs; };
-  stgitAliases = import ./cfg-aliases-stgit.nix;
+  stgitAliases = import ./cfg-aliases-stgit.nix { inherit lib pkgs; };
 in
 {
-  # `gh` is installed here because one Git credential helper shells out to
-  # `gh auth git-credential` for gist.github.com. Keep the package dependency
-  # next to the Git config that needs it.
+  # Keep command dependencies beside the aliases/config that call them. `gh`
+  # backs one credential helper, while `stgit` backs the patch-stack aliases in
+  # `alias` and `stgit.alias`.
   home.packages = [
     pkgs.gh
+    pkgs.stgit
   ];
 
   programs.unmanaged.git = {

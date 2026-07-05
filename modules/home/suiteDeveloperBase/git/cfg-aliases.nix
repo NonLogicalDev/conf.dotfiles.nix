@@ -97,29 +97,8 @@
   conflicts = "!git --no-pager diff --name-status --diff-filter=U";
   conflicts-ls = "!git --no-pager diff --name-only --diff-filter=U";
 
-  # Project-local helper commands that still need a future packaging/inventory
-  # pass. They are preserved as aliases because the current workflow expects
-  # them, but they are not yet modeled as reusable Blueprint packages.
-  ctx = ''!git-utils git-ctx -q "ctx/"'';
-  addu = "!git-utils git-checked-add-update";
-  browse = "!git-utils git-browse";
-  review = "!frk";
-
-  # Arcanist/Facebook Arcanist helpers retained for repositories that still use
-  # Phabricator-style review flows.
-  arc-upload = ''!arc diff "HEAD~1"'';
-  arc-draft = "arc-upload --only";
-  arc-lint = "!arc lint --rev HEAD~1 --trace --apply-patches";
-  arc-unit = "!arc unit --rev HEAD~1 --trace";
-
-  # `farc` is another review-upload helper family. Keep it isolated from the
-  # normal Git aliases so it can be removed easily if no current repo uses it.
-  farc-push = "!farc upload HEAD~1..HEAD";
-  farc-edit = "!git notes --ref refs/notes/farc edit";
-
-  # `q*` aliases are a personal compatibility layer over StGit. They make StGit
-  # feel like an older patch-queue workflow without forcing StGit commands into
-  # the shell namespace.
+  # `q*` aliases are a personal compatibility layer over StGit. The Git module
+  # installs `stgit` so these aliases work on a clean profile.
   q = "!stg";
   qinit = "!stg init";
   qsd = "!stg sd";

@@ -60,20 +60,23 @@ autocmd("ColorScheme", {
 })
 
 vim.api.nvim_create_user_command("RG", function(opts)
-  local args = opts.args
-  if args == "" then
+  local args = opts.fargs
+  if #args == 0 then
     vim.notify("RG: No search pattern provided", vim.log.levels.ERROR)
     return
   end
 
-  local output = vim.fn.systemlist("rg --vimgrep --no-heading --smart-case " .. args)
+  local command = { "rg", "--vimgrep", "--no-heading", "--smart-case" }
+  vim.list_extend(command, args)
+
+  local output = vim.fn.systemlist(command)
   if vim.v.shell_error ~= 0 and #output == 0 then
     vim.notify("RG: No matches found", vim.log.levels.WARN)
     return
   end
 
   vim.fn.setqflist({}, "r", {
-    title = "RG: " .. args,
+    title = "RG: " .. table.concat(args, " "),
     lines = output,
   })
   vim.cmd("copen")
@@ -84,13 +87,16 @@ end, {
 })
 
 vim.api.nvim_create_user_command("FD", function(opts)
-  local args = opts.args
-  if args == "" then
+  local args = opts.fargs
+  if #args == 0 then
     vim.notify("FD: No pattern provided", vim.log.levels.ERROR)
     return
   end
 
-  local output = vim.fn.systemlist("fd " .. args)
+  local command = { "fd" }
+  vim.list_extend(command, args)
+
+  local output = vim.fn.systemlist(command)
   if vim.v.shell_error ~= 0 and #output == 0 then
     vim.notify("FD: No matches found", vim.log.levels.WARN)
     return
@@ -106,7 +112,7 @@ vim.api.nvim_create_user_command("FD", function(opts)
   end
 
   vim.fn.setqflist({}, "r", {
-    title = "FD: " .. args,
+    title = "FD: " .. table.concat(args, " "),
     items = qf_list,
   })
   vim.cmd("copen")

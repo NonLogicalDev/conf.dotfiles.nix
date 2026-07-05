@@ -129,6 +129,30 @@ in
       # directory and an empty file so later logic can treat creation and
       # replacement uniformly.
       mkdir -p "$(dirname "$target")"
+      if [ -L "$target" ]; then
+        link_target="$(readlink "$target")"
+        case "$link_target" in
+          /nix/store/*)
+            if [ ! -r "$target" ]; then
+              echo "Refusing to replace unreadable Nix store symlink $target -> $link_target." >&2
+              exit 1
+            fi
+            link_copy="$(mktemp "$target.link-copy.XXXXXX")"
+            cp "$target" "$link_copy" || {
+              rm -f "$link_copy"
+              exit 1
+            }
+            rm "$target"
+            cp "$link_copy" "$target"
+            rm -f "$link_copy"
+            ;;
+          *)
+            echo "Refusing to update $target because it is a symlink to $link_target." >&2
+            echo "Replace it with a regular file before enabling a managed mutable block." >&2
+            exit 1
+            ;;
+        esac
+      fi
       if [ ! -e "$target" ]; then
         : > "$target"
       fi

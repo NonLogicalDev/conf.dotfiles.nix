@@ -1,7 +1,7 @@
-{ ... }:
+{ lib, pkgs, ... }:
 
 let
-  inherit (import ./lib) jjAliasBashFile;
+  inherit (import ./lib { inherit lib pkgs; }) jjAliasBashFile;
 in
 
 {

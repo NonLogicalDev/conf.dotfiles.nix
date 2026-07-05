@@ -5,9 +5,7 @@
 #   interactively or under a generated change-id branch name.
 # Inputs:
 #   $1 - Optional JJ reference to publish. Defaults to the working copy change.
-#   $2 - Optional remote name. Defaults to origin. The current implementation
-#        validates the value but still pushes to origin; keep this visible until
-#        the publishing flow is tightened.
+#   $2 - Optional remote name. Defaults to origin.
 # Outputs:
 #   Writes selection prompts, validation errors, and the traced git push command
 #   to the terminal.
@@ -74,11 +72,11 @@ fi
 
 if [ -z "$bookmark_selected" ]; then
   ( set -x;
-    git push origin -f "$git_commit_id:refs/heads/$jj_author/jj-change-id/$jj_change_id_short"
+    git push "$jj_remote" -f "$git_commit_id:refs/heads/$jj_author/jj-change-id/$jj_change_id_short"
   )
 fi
 if [ -n "$bookmark_selected" ]; then
   ( set -x;
-    git push origin -f "$git_commit_id:refs/heads/$jj_author/jj-bookmark/$bookmark_selected"
+    git push "$jj_remote" -f "$git_commit_id:refs/heads/$jj_author/jj-bookmark/$bookmark_selected"
   )
 fi

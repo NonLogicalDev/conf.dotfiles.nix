@@ -103,7 +103,6 @@ in
       );
       default = [
         ".config/git/config"
-        ".gitconfig"
       ];
       description = ''
         Mutable Git config files that should receive the managed include block.
@@ -111,12 +110,10 @@ in
         Git reads both ~/.config/git/config and ~/.gitconfig for normal
         config loading, with later values winning. Git's own `git config
         --global` write target depends on which of those files already
-        exists, so unmanaged git can keep both conventional entrypoints wired
-        into the same generated config.d fragment.
-
-        If both files exist, Git will read the generated fragment from both
-        include sites. Single-valued settings remain deterministic, but
-        multi-valued settings such as credential helpers may appear twice.
+        exists. The default manages only ~/.config/git/config so clean systems
+        do not read multi-valued settings, such as credential helpers, twice.
+        Add ~/.gitconfig explicitly only when a host needs both conventional
+        entrypoints wired into the same generated config.d fragment.
       '';
     };
   };

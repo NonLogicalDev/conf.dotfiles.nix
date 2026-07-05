@@ -1,3 +1,5 @@
+{ pkgs }:
+
 {
   # Color matched grep text with a loud but familiar magenta background. Both
   # variables are kept because different grep implementations consult different
@@ -20,7 +22,9 @@
   # configured in `programs.less` in the parent shell module.
   PAGER = "less";
 
-  # Legacy environment hint used by existing personal scripts. Keep it explicit
-  # here until those scripts are audited or replaced.
+}
+// pkgs.lib.optionalAttrs pkgs.stdenv.isDarwin {
+  # Legacy environment hint used by existing macOS-only personal scripts. Do
+  # not set it on Linux; a false platform signal is worse than an absent one.
   PLATFORM = "MAC";
 }

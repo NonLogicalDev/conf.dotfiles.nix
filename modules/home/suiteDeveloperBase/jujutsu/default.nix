@@ -106,12 +106,11 @@ in
       snapshot = {
         # This profile favors jj seeing the whole working tree by default.
         auto-track = "all()";
-
-        # Keep personal remote bookmark namespaces immutable by default.
-        "immutable_heads()" = immutableBookmarkRevset;
       };
 
       revset-aliases = {
+        # Keep personal remote bookmark namespaces immutable by default.
+        "immutable_heads()" = immutableBookmarkRevset;
         "closest_bookmark(to)" = "heads(::to & bookmarks())";
         "closest_pushable(to)" = "heads(::to & ~description(exact:\"\") & (~empty() | merges()))";
         log = "present(@) | ancestors(immutable_heads().., 2) | present(trunk())";
@@ -128,5 +127,6 @@ in
     pkgs.git
     pkgs.gum
     pkgs.jq
+    pkgs.stgit
   ];
 }

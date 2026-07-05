@@ -219,6 +219,20 @@ let
       unset -f _dotfiles_nix_source_${name}_hooks
     '';
 
+  mkPosixHookSourceBlock =
+    { hookDir }:
+    ''
+      dotfiles_nix_hook_dir="${hookDir}"
+      if [ -d "$dotfiles_nix_hook_dir" ]; then
+        for dotfiles_nix_hook in "$dotfiles_nix_hook_dir"/[0-9][0-9]-*.bash; do
+          if [ -e "$dotfiles_nix_hook" ] && [ -r "$dotfiles_nix_hook" ]; then
+            . "$dotfiles_nix_hook"
+          fi
+        done
+      fi
+      unset dotfiles_nix_hook_dir dotfiles_nix_hook
+    '';
+
   # For every enabled Bash startup file we generate two things:
   # 1. the numbered hook that contains Nix/Home Manager content;
   # 2. a dispatcher file that a tiny managed block in ~/.bashrc-like files can
@@ -237,10 +251,16 @@ let
         // (mapAttrs' (
           name: _:
           nameValuePair (dispatcherPath name) {
-            text = mkBashHookSourceBlock {
-              inherit name;
-              hookDir = "$HOME/${hookDir name}";
-            };
+            text =
+              if name == "profile" then
+                mkPosixHookSourceBlock {
+                  hookDir = "$HOME/${hookDir name}";
+                }
+              else
+                mkBashHookSourceBlock {
+                  inherit name;
+                  hookDir = "$HOME/${hookDir name}";
+                };
           }
         ) enabledFiles);
 

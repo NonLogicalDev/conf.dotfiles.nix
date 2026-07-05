@@ -1,3 +1,8 @@
+{ lib, pkgs }:
+
+let
+  bashExe = lib.getExe pkgs.bash;
+in
 rec {
   # Jujutsu aliases are rendered as argv arrays in TOML. Shell-backed aliases
   # therefore need the full `jj util exec -- bash -c <script> <arg0>` shape
@@ -14,7 +19,7 @@ rec {
       "util"
       "exec"
       "--"
-      "bash"
+      bashExe
       "-c"
       script
       shellArg0

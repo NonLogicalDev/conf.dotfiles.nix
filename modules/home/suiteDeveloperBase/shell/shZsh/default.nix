@@ -48,7 +48,9 @@ let
   # Home Manager writes each attrset entry as one file in zsh's site-functions
   # directory. The filename is the zsh autoload name, so keep the source files
   # named exactly as the commands or prompt functions they define.
-  localFunctionFiles = lib.filesystem.listFilesRecursive ./lib/functions;
+  localFunctionFiles = lib.filter (path: pkgs.stdenv.isDarwin || builtins.baseNameOf path != "cdf") (
+    lib.filesystem.listFilesRecursive ./lib/functions
+  );
   localSiteFunctions = builtins.listToAttrs (
     map (path: {
       name = builtins.baseNameOf path;

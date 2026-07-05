@@ -9,7 +9,7 @@
 let
   # Zsh is the primary shell, and many non-Nix tools still append to ~/.zshrc,
   # ~/.zprofile, or ~/.zshenv. This module lets Home Manager generate complete
-  # zsh startup content while conventional top-level files remain editable.
+  # zsh startup content while conventional startup files remain editable.
   inherit (lib)
     attrByPath
     concatStringsSep
@@ -43,7 +43,16 @@ let
   # glob over numbered hooks, so managed blocks never contain shell logic.
   hookDir = name: ".config/zsh/rc/${name}.d";
   dispatcherPath = name: ".config/zsh/rc/${name}.zsh";
-  targetPath = name: ".${name}";
+  # Zsh always reads ~/.zshenv first. After Home Manager's zshenv sets ZDOTDIR,
+  # later startup files are read from programs.zsh.dotDir, so the mutable bridge
+  # must manage the real files Zsh will read rather than blindly writing
+  # top-level files that may be ignored.
+  targetPath =
+    name:
+    if name == "zshenv" || config.lib.zsh.dotDirRel == "." then
+      ".${name}"
+    else
+      "${config.lib.zsh.dotDirRel}/.${name}";
   defaultHookName = "50-nix-managed.zsh";
 
   nativeZshFileNames = [
@@ -81,7 +90,8 @@ let
 
   # Home Manager normally owns files below programs.zsh.dotDir. In unmanaged
   # mode those rendered files are copied into hooks instead, then disabled so
-  # the mutable top-level files can be maintained by activation blocks.
+  # the mutable files that zsh actually reads can be maintained by activation
+  # blocks.
   disableNativeZshFileLinks = listToAttrs (
     map (name: nameValuePair name { enable = mkForce false; }) nativeZshOwnedFileKeys
   );
@@ -217,16 +227,16 @@ in
         target = "~/.zshenv";
       };
       zprofile = managedFileOption {
-        target = "~/.zprofile";
+        target = "~/${targetPath "zprofile"}";
       };
       zshrc = managedFileOption {
-        target = "~/.zshrc";
+        target = "~/${targetPath "zshrc"}";
       };
       zlogin = managedFileOption {
-        target = "~/.zlogin";
+        target = "~/${targetPath "zlogin"}";
       };
       zlogout = managedFileOption {
-        target = "~/.zlogout";
+        target = "~/${targetPath "zlogout"}";
       };
     };
   };

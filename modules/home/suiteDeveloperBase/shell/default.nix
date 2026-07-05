@@ -13,7 +13,7 @@ let
 
   # Keep broad login/session environment here rather than in zsh-specific
   # startup files. These variables should apply to any shell Home Manager owns.
-  sessionVariables = import ./cfg-session-variables.nix;
+  sessionVariables = import ./cfg-session-variables.nix { inherit pkgs; };
 in
 {
   # `shZsh` contains the zsh implementation details. This parent module is
@@ -107,6 +107,7 @@ in
   # Small local commands that should exist as real executables, not aliases or
   # zsh functions. `opn` is packaged under `packages/opn`.
   home.packages = [
+    pkgs.dnsutils
     selfPackages.opn
   ];
 
