@@ -26,6 +26,7 @@ The current dotfiles situation is treated as a working but chaotic garden. This 
 - Use `numtide/blueprint` directly as the flake output mapper; do not add `flake-parts`.
 - Start with one current-machine Darwin scaffold named `nonlogicals-mbp`, plus shared module locations for future user and system profiles.
 - Keep shared modules free of personal host/user constants; user identity should live at the host/profile boundary until we introduce a cleaner abstraction.
+- Keep home modules explicitly light during bootstrap; do not add common packages until inventory shows what should be owned.
 
 ## Implementation Steps
 
@@ -47,6 +48,7 @@ The current dotfiles situation is treated as a working but chaotic garden. This 
 - `flake-parts` is intentionally omitted after the scope correction; Blueprint owns the flake output shape.
 - Blueprint's Darwin/home-manager wiring derives the home-manager user's home directory from the Darwin user; do not duplicate `home.homeDirectory` inside the host user home profile.
 - Do not hardcode `system.primaryUser` in the shared Darwin core module.
+- `modules/home/core.nix` should not install common packages yet. Package ownership should come after the Dotter/dotfiles inventory.
 
 ## Work Log
 
@@ -56,6 +58,7 @@ The current dotfiles situation is treated as a working but chaotic garden. This 
 - [x] 2026-07-04 17:03 - Fixed the first validation failure by removing duplicate home-manager home path configuration.
 - [x] 2026-07-04 17:03 - Removed hardcoded `system.primaryUser` from the shared Darwin module.
 - [x] 2026-07-04 17:03 - Validated the direct Blueprint scaffold with `nix flake check`.
+- [x] 2026-07-04 17:12 - Removed the provisional common package list from the shared home module.
 
 ## Unfinished Work
 
