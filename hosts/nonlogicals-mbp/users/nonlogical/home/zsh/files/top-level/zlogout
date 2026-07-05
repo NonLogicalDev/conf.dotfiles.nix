@@ -1,0 +1,2 @@
+[[ -s $HOME/.config/zsh/hooks/_loader.zsh ]] && HOOK_DIR="$HOME/.config/zsh/hooks/zlogout.d" source "$HOME/.config/zsh/hooks/_loader.zsh";
+[[ -s "$HOME/.config/zsh/hooks/zlogout" ]] && source "$HOME/.config/zsh/hooks/zlogout"
