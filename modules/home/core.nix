@@ -2,9 +2,9 @@
 
 {
   imports = [
-    ./programs/unmanaged/bash.nix
-    ./programs/unmanaged/git.nix
-    ./programs/unmanaged/zsh.nix
+    ./pkgUnmanagedBash.nix
+    ./pkgUnmanagedGit.nix
+    ./pkgUnmanagedZsh.nix
   ];
 
   programs.home-manager.enable = true;

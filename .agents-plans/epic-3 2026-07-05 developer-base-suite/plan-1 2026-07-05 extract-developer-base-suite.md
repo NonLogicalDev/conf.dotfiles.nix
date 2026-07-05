@@ -33,17 +33,17 @@ This plan starts with design and inventory because the existing host-user tree m
 
 ## Product Integration
 
-- Existing product model: host-user app configs under `hosts/<host>/users/<username>/home/` are the migration workspace; reusable behavior belongs in `modules/home/programs/` or `modules/home/suites/`; host system facts belong under `hosts/<host>/`.
+- Existing product model: host-user app configs under `hosts/<host>/users/<username>/home/` are the migration workspace; reusable Home Manager integrations belong in `modules/home/pkg<Name>` and reusable suites belong in `modules/home/suite<Name>`; host system facts belong under `hosts/<host>/`.
 - New requirement's real intent: turn the proven personal development setup into a reusable, configurable developer baseline that can be enabled for multiple users and operating systems.
-- Cleanest integrated model: add a shared Home Manager suite under `modules/home/suites/developer-base/` with explicit options for identity and included tool families, then let each host-user profile enable the suite and provide concrete values.
+- Cleanest integrated model: add a shared Home Manager suite under `modules/home/suiteDeveloperBase/` with explicit options for identity and included tool families, then let each host-user profile enable the suite and provide concrete values.
 - Existing pieces that should move, change, or disappear: reusable Git, Jujutsu, shell, tmux, Atuin, and Neovim behavior should move out of `hosts/nonlogicals-mbp/users/nonlogical/home/` over time; personal identity literals should become option values supplied by the host-user profile; Darwin-only user-home facts should remain in the Darwin host layer.
 - Architecture impact: this epic will likely introduce shared suite modules, option definitions, and host-user enablement blocks. It should not create fake hosts or move Linux/Darwin system facts into Home Manager modules.
 - Why this is better than a local patch: changing a few literals would make the current Mac profile less hardcoded, but would still leave the reusable developer environment trapped inside one host-user path. A suite gives the project a real reuse boundary before adding Linux profiles.
 
 ## Decisions
 
-- Create the reusable developer baseline as a Home Manager suite under `modules/home/suites/developer-base/`, not as another host-user `home/` directory.
-- Keep low-level single-program integrations under `modules/home/programs/` when a reusable program module is needed. The developer base suite should compose program modules and Home Manager options; it should not become a dumping ground for every app's internal implementation.
+- Create the reusable developer baseline as a Home Manager suite under `modules/home/suiteDeveloperBase/`, not as another host-user `home/` directory.
+- Keep low-level single-program integrations under `modules/home/pkg<Name>` when a reusable program module is needed. The developer base suite should compose program modules and Home Manager options; it should not become a dumping ground for every app's internal implementation.
 - Keep per-user and per-machine values outside reusable modules. Source-control identity is supplied by the host-user profile as `dotfiles.suites.developerBase.scmIdentity.{name,email,slug}`.
 - Prefer `config.home.username` and `config.home.homeDirectory` when Home Manager already knows the current user. Add suite options only when the suite needs a value that Home Manager does not already model clearly, such as Git/JJ identity defaults or profile-specific feature toggles.
 - Git and Jujutsu intentionally share one SCM identity surface in the developer base suite. `scmIdentity.name` and `scmIdentity.email` feed both tools, while `scmIdentity.slug` derives personal namespace globs such as the Jujutsu immutable bookmark glob `<slug>/*`.
@@ -54,7 +54,7 @@ This plan starts with design and inventory because the existing host-user tree m
 
 1. [x] Inventory host-user Home Manager files for personal literals, OS-specific assumptions, path assumptions, and reusable developer behavior.
 2. [x] Design the developer base suite option surface, including identity options, enabled tool families, and defaults that are safe for both macOS and Linux.
-3. [x] Decide which existing host-user app profiles move directly into `modules/home/suites/developer-base/` and which need lower-level modules under `modules/home/programs/` first.
+3. [x] Decide which existing host-user app profiles move directly into `modules/home/suiteDeveloperBase/` and which need lower-level modules under `modules/home/pkg<Name>` first.
 4. [x] Extract the tool profiles into shared modules while keeping `hosts/nonlogicals-mbp/users/nonlogical/home-configuration.nix` behavior equivalent.
 5. [x] Parameterize shared SCM identity for Git and Jujutsu, preserving the current Mac profile's concrete values at the host-user boundary.
 6. [x] Replace hardcoded username and home path assumptions in reusable Home Manager code with `config.home.username`, `config.home.homeDirectory`, or explicit suite options.
@@ -67,19 +67,20 @@ This plan starts with design and inventory because the existing host-user tree m
 - The starting Mac profile used different Git and Jujutsu email literals, but the reusable suite now chooses a single SCM identity surface for consistency. If a future profile needs per-tool identity divergence, that should be added as an explicit extension rather than preserved as accidental migration shape.
 - `users.users.<name>.home` is a nix-darwin system option and should stay in the Darwin host configuration. Reusable Home Manager modules should use Home Manager's own user/home values or explicit options instead.
 - The suite should convey the essence of the current developer environment, not preserve the host-user file structure. Existing files under `hosts/nonlogicals-mbp/users/nonlogical/home/` are source material for extraction, not the target layout.
-- The implemented suite lives at `modules/home/suites/developer-base/`, with a small Blueprint export wrapper at `modules/home/developer-base.nix`. Host-user profiles import it as `inputs.self.homeModules."developer-base"`.
+- The implemented suite now lives at `modules/home/suiteDeveloperBase/`, exported directly by Blueprint as `inputs.self.homeModules.suiteDeveloperBase` without a thin wrapper module.
 - Concrete personal identity values now live in `hosts/nonlogicals-mbp/users/nonlogical/home-configuration.nix` under `dotfiles.suites.developerBase.scmIdentity`. The shared suite no longer contains `nonlogical`, `/Users/nonlogical`, `hello@nonlogical.net`, `oleg@nonlogical.net`, `Oleg Utkin`, or `oleg.utkin/*` literals.
 - Jujutsu's personal immutable bookmark glob is derived from `scmIdentity.slug`, so the Mac profile's `slug = "oleg.utkin";` produces `bookmarks(glob:'oleg.utkin/*')` without storing the glob separately.
-- Atuin's launchd-backed local server helpers are guarded with `pkgs.stdenv.isDarwin`. A synthetic `x86_64-linux` Home Manager evaluation imports the same suite with different Git/JJ identities and emits no launchd agents.
+- Atuin's local server is platform-gated inside the reusable suite. Darwin profiles emit a launchd user agent and launchctl-backed helpers; Linux profiles emit a `systemd.user` service and systemctl-backed helpers. A synthetic `x86_64-linux` Home Manager evaluation should confirm the suite imports cleanly with different Git/JJ identities and without any Darwin launchd agents.
 
 ## Work Log
 
 - [x] 2026-07-05 02:17 - Created the developer base suite epic and initial self-contained plan.
 - [x] 2026-07-05 02:20 - Removed turn-specific planning language so the plan describes project sequencing rather than freezing implementation.
-- [x] 2026-07-05 02:31 - Moved the migrated shell, Git, Jujutsu, tmux, Atuin, and Neovim profiles into `modules/home/suites/developer-base/`, added the exported `homeModules."developer-base"` wrapper, and wired the Mac host-user profile through the suite.
+- [x] 2026-07-05 02:31 - Moved the migrated shell, Git, Jujutsu, tmux, Atuin, and Neovim profiles into the reusable developer suite and wired the Mac host-user profile through the suite.
 - [x] 2026-07-05 02:31 - Parameterized Git and Jujutsu identities, moved current concrete values to the host-user profile, guarded Darwin-only Atuin launchd behavior, and validated with activation build, synthetic Linux Home Manager eval, formatting, and `nix flake check`.
 - [x] 2026-07-05 09:43 - Collapsed Git and Jujutsu identity options into a single SCM identity surface, later named `scmIdentity.{name,email,slug}`, and derived the Jujutsu immutable bookmark glob from the SCM namespace value.
 - [x] 2026-07-05 10:10 - Renamed the SCM namespace option from `scmIdentity.username` to `scmIdentity.slug` so it is not confused with the Home Manager login username.
+- [x] 2026-07-05 11:05 - Added Linux parity for the suite-owned Atuin local server by emitting a `systemd.user` unit on Linux while keeping launchd behavior Darwin-only.
 
 ## Unfinished Work
 

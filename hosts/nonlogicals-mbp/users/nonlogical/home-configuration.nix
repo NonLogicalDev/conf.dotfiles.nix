@@ -3,7 +3,7 @@
 {
   imports = [
     inputs.self.homeModules.core
-    inputs.self.homeModules."developer-base"
+    inputs.self.homeModules.suiteDeveloperBase
   ];
 
   dotfiles.suites.developerBase = {

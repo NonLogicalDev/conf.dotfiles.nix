@@ -53,7 +53,7 @@ This repository already uses the host-user convention `hosts/nonlogicals-mbp/use
 - Migrate Atuin first. Its Dotter config is mostly generated comments plus a small set of real preferences, so `programs.atuin.settings` can convey the actual behavior without copying the full TOML file.
 - Let Atuin own shell history search on Ctrl-R. Keep `programs.fzf` enabled, but set `programs.fzf.historyWidget.command = ""` so fzf does not compete with Atuin's zsh integration.
 - Enable Atuin fish integration in the shell slice. Fish is a secondary compatibility shell, but Home Manager can emit the native Atuin fish hook without preserving handwritten `conf.d` snippets.
-- Replace the Docker-based Atuin server helper with a native Nix-managed Atuin server. Home Manager installs `atuin-server-up` and `atuin-server-down` as host-user helper commands that control a launchd agent running `atuin server start` directly from the Nix Atuin package.
+- Replace the Docker-based Atuin server helper with a native Nix-managed Atuin server. Home Manager installs `atuin-server-up` and `atuin-server-down` as host-user helper commands that control the native per-user service manager: launchd on macOS and `systemd --user` on Linux. Both run `atuin server start` directly from the Nix Atuin package.
 - Migrate tmux through Home Manager's native `programs.tmux` options plus one focused `extra.conf` file for status bar and keybinding behavior. Keep a top-level `.tmux.conf` bridge that sources the XDG config so ordinary tmux startup finds the Home Manager config.
 - Migrate Jujutsu through Home Manager's native `programs.jujutsu.settings` as the source of truth for `~/.config/jj/config.toml`. Do not manage old `conf.d` tombstone files; on a clean target, no extra `conf.d` files should exist unless a future conditional-config slice intentionally creates them.
 - Keep mutable Jujutsu repository metadata under `~/.config/jj/repos/` unmanaged. That directory is application state, not durable profile configuration.
@@ -81,7 +81,7 @@ This repository already uses the host-user convention `hosts/nonlogicals-mbp/use
 - The Atuin local server `Justfile` and `compose.yml` are not client settings. They are excluded from this Home Manager slice; the essential client behavior is the local `sync_address`.
 - Enabling Atuin zsh integration while fzf zsh integration is enabled requires disabling fzf's Ctrl-R history widget. Home Manager documents `programs.fzf.historyWidget.command = ""` as the supported way to yield Ctrl-R to Atuin.
 - The Atuin server helper does not belong under `packages/` because it is host-user operational glue, not a reusable program. It lives inline in `home/atuin/default.nix`, produces real `atuin-server-up` and `atuin-server-down` commands, and controls a Home Manager launchd agent running `atuin server start` directly from the Nix package.
-- The Atuin launchd job should not hide meaningful behavior in a wrapper script. Launchd runs the Nix `atuin` executable directly, while Home Manager creates the mutable data and log directories with marker files.
+- The Atuin service job should not hide meaningful behavior in a wrapper script. Launchd and systemd both run the Nix `atuin` executable directly, while Home Manager creates the mutable data directory with a marker file. macOS also gets a log directory because launchd writes stdout/stderr to files; Linux uses the user journal.
 - The Nix-managed Atuin server uses `ATUIN_DB_URI=sqlite:///Users/nonlogical/.local/share/atuin/server.db`, `ATUIN_OPEN_REGISTRATION=true`, and `RUST_LOG=info,atuin_server=debug`; the client continues to sync against `http://127.0.0.1:45654`.
 - The live tmux setup had both `~/.tmux.conf` and `~/.config/tmux/` as Dotter symlinks. Home Manager writes `~/.config/tmux/tmux.conf`; a small top-level bridge is enough to preserve tmux startup behavior without keeping duplicate config.
 - The old tmux `init.sh` and `bin/hooks/tmux/on-start.sh` are not active tmux configuration. The `init.sh` only handled `reattach-to-user-namespace`, so it is not migrated in this slice.
@@ -103,6 +103,8 @@ This repository already uses the host-user convention `hosts/nonlogicals-mbp/use
 - [x] 2026-07-05 01:29 - Added the Jujutsu Home Manager profile, replaced legacy `conf.d` symlinks with managed tombstones, validated generated config through `jj config list`, and reran `nix flake check`.
 - [x] 2026-07-05 01:35 - Removed Dotter compatibility behavior from the Atuin, Jujutsu, tmux, and fish modules, added the clean-system cleanup notes, and replaced the Docker Atuin server helper with a launchd-backed native Atuin server.
 - [x] 2026-07-05 01:50 - Removed the hidden `atuin-server-launchd` wrapper so the LaunchAgent runs the Nix `atuin` executable directly; Home Manager now creates the server data and log directories declaratively.
+- [x] 2026-07-05 11:05 - Added a Linux `systemd.user.services.atuin-server` unit comparable to the macOS LaunchAgent, with matching `atuin-server-up` and `atuin-server-down` helpers that use `systemctl --user`.
+- [x] 2026-07-05 11:09 - Renamed Atuin module local bindings in namespace-first order, such as `atuinServer`, `atuinServerLaunchdUp`, and `atuinServerSystemdUp`, so related service variables sort together.
 
 ## Unfinished Work
 

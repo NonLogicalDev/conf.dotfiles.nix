@@ -50,7 +50,7 @@ Prior migration rules still apply:
 6. [x] Smoke-test Neovim headlessly enough to catch Lua load errors and missing plugin/tool references.
 7. [x] Update this plan with cleanup notes for the existing `~/.config/nvim` Dotter symlink before activation.
 8. [x] Replace the generic Home Manager `programs.neovim` wrapper with NixVim's Home Manager module while preserving the first-slice behavior.
-9. [x] Split plugin enablement and plugin-specific configuration into `modules/home/suites/developer-base/neovim/plugins/<namespace>__<plugin>.nix`, following the active Dotter Neovim config's namespace grouping.
+9. [x] Split plugin enablement and plugin-specific configuration into `modules/home/suiteDeveloperBase/neovim/plugins/<namespace>__<plugin>.nix`, following the active Dotter Neovim config's namespace grouping.
 10. [x] Validate the NixVim-backed profile with activation build, generated config inspection, headless Neovim smoke checks, synthetic Linux eval, and `nix flake check`.
 
 ## Learning Log
@@ -64,7 +64,7 @@ Prior migration rules still apply:
 - The old generic Home Manager wrapper required explicit `packpath`/`runtimepath` wiring through `pkgs.vimUtils.packDir`. NixVim replaces that workaround by generating the plugin pack wiring itself from `programs.nixvim.plugins.*` and `programs.nixvim.extraPlugins`.
 - NixVim is now the desired module layer because it can generate Neovim Lua from Nix modules while still allowing raw Lua through `extraConfigLua` and non-module plugins through `extraPlugins`.
 - The NixVim-backed profile imports `inputs.nixvim.homeModules.nixvim`, sets `programs.nixvim`, and pins `programs.nixvim.nixpkgs.source = pkgs.path` because the flake intentionally follows this repo's `nixpkgs`.
-- Plugin-specific behavior now lives under `modules/home/suites/developer-base/neovim/plugins/<namespace>__<plugin>.nix`, using the same namespace grouping idea as the source files such as `editing__luasnip.lua`, `lsp__nvim-cmp.lua`, `nav__telescope.lua`, `ui__lualine.lua`, and `vcs__gitsigns.lua`. The old `lua/dotfiles/completion.lua`, `lua/dotfiles/lsp.lua`, and `lua/dotfiles/plugins.lua` companion files were removed after their behavior moved into NixVim modules.
+- Plugin-specific behavior now lives under `modules/home/suiteDeveloperBase/neovim/plugins/<namespace>__<plugin>.nix`, using the same namespace grouping idea as the source files such as `editing__luasnip.lua`, `lsp__nvim-cmp.lua`, `nav__telescope.lua`, `ui__lualine.lua`, and `vcs__gitsigns.lua`. The old `lua/dotfiles/completion.lua`, `lua/dotfiles/lsp.lua`, and `lua/dotfiles/plugins.lua` companion files were removed after their behavior moved into NixVim modules.
 - Some plugin settings still need raw Lua values inside their Nix files because the plugin APIs require callback functions, for example completion mappings, gitsigns `on_attach`, LSP attach behavior, and Telescope/toggleterm function options. Those raw snippets are scoped to the owning plugin module instead of living in a broad plugin Lua file.
 
 ## Work Log

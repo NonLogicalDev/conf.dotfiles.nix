@@ -16,7 +16,7 @@ The current real home had `~/.config/git/config` as the only active global Git c
 
 ## Product Integration
 
-- Existing product model: reusable unmanaged top-level file behavior lives in `modules/home/programs/unmanaged/git.nix`; host-user Git choices live under `hosts/nonlogicals-mbp/users/nonlogical/home/git/`.
+- Existing product model: reusable unmanaged top-level file behavior lives in `modules/home/pkgUnmanagedGit.nix`; host-user Git choices have been absorbed into the shared developer suite.
 - New requirement's real intent: move Git behavior to idiomatic Home Manager while leaving a small mutable include point for third-party tools.
 - Cleanest integrated model: `programs.unmanaged.git` owns the include bridge, while `programs.git.settings` and `programs.git.ignores` own the managed behavior.
 - Existing pieces that should move, change, or disappear: copied Dotter Git fragments should not remain as long-lived files once their behavior is expressed in Nix.

@@ -35,7 +35,7 @@
   "PUSHD_IGNORE_DUPS"
 
   # History and globbing preferences. `INC_APPEND_HISTORY` complements the
-  # Home Manager history settings in `shell-zsh/default.nix`.
+  # Home Manager history settings in `shZsh/default.nix`.
   "INC_APPEND_HISTORY"
   "NO_NOMATCH"
   "IGNORE_EOF"

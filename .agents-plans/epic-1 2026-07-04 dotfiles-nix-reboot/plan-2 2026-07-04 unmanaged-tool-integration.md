@@ -26,13 +26,13 @@ The desired middle ground is: conventional top-level files remain mutable and to
 - New requirement's real intent: gain Home Manager's declarative power without breaking Nix-oblivious tools that mutate conventional dotfiles.
 - Cleanest integrated model: introduce `programs.unmanaged.<tool>` modules that own coexistence boundaries, not full top-level file ownership.
 - Existing pieces that should move, change, or disappear: native `programs.<tool>.enable` should be forbidden by default when the unmanaged tool module owns the top-level coexistence path.
-- Architecture impact: reusable activation helpers likely belong in `lib/home/`; low-level modules belong in `modules/home/programs/unmanaged/` or a similar namespace.
+- Architecture impact: reusable activation helpers belong in `lib/home/`; the low-level unmanaged modules now live as Blueprint-exported camelCase modules under `modules/home/pkgUnmanaged{Bash,Git,Zsh}.nix`.
 - Why this is better than a local patch: it makes partial adoption explicit, reversible, and repeatable per tool instead of relying on hand-edited dotfile shims.
 
 ## Decisions
 
 - Use the namespace `programs.unmanaged.<tool>` for the migration/adoption layer.
-- Put the first low-level modules under `modules/home/programs/unmanaged/` and import that module set from `modules/home/core.nix` so the options are available but dormant until a host user enables them.
+- Put the first low-level modules under `modules/home/pkgUnmanaged{Bash,Git,Zsh}.nix` and import that module set from `modules/home/core.nix` so the options are available but dormant until a host user enables them.
 - Put the shared Home Manager marked-block activation helper under `lib/home/managed-block.nix`; the `home` directory provides the Home Manager context, so the filename does not need an `hm-` prefix.
 - Assume third-party tools are Nix-oblivious and will mutate conventional top-level files.
 - Keep conventional top-level files mutable by default.
@@ -63,7 +63,7 @@ The desired middle ground is: conventional top-level files remain mutable and to
 - Allow `lib/home/managed-block.nix` callers to choose where a new block is inserted. Default to appending, but support an `after-preamble` mode with caller-provided line regexes so shebangs, file headers, and doc comments can remain before the managed block.
 - Allow callers to opt into relocating an existing managed block. Shell startup files use this because the managed source block must run before most hand-written or installer-written rc content. Git also uses relocation so the include remains near the top of the mutable config file.
 - Place Git managed includes near the top of mutable config files. Git applies config in file order, so this lets Nix provide defaults while later hand-written or tool-written settings in the final loaded file can override them.
-- Import the unmanaged bash, git, and zsh modules explicitly from `modules/home/core.nix`; avoid a `modules/home/programs/unmanaged/default.nix` that only hides a short module list.
+- Import the unmanaged bash, git, and zsh modules explicitly from `modules/home/core.nix`; avoid an aggregate unmanaged-module `default.nix` that only hides a short module list.
 - In this Blueprint flake's module graph, Home Manager submodules receive `inputs`, so leaf modules should use `inputs.self.lib.home.*` for repo-local helpers instead of deep relative imports or `_module.args` plumbing.
 - Git pressure tests on Apple Git 2.50.1 show that normal Git config loading reads `~/.config/git/config` and `~/.gitconfig`, but `git config --global` has narrower behavior: it does not expand includes unless `--includes` is passed, and its write target depends on which global config file exists. Keep the Git include targets configurable.
 
@@ -91,7 +91,7 @@ The desired middle ground is: conventional top-level files remain mutable and to
 - For bash and zsh startup files, append placement is too late for the migration use case. The managed source block should be inserted after only the leading preamble, so ordered hook directories can affect the rest of `.bashrc`, `.bash_profile`, `.zshenv`, `.zprofile`, `.zshrc`, `.zlogin`, and `.zlogout`.
 - For bash and zsh, the Nix-owned hook defaults to `50-nix-managed.<shell>` inside `~/.config/<shell>/rc/<startup-file>.d/`. Lower numbers can prepare state before Nix; higher numbers can extend or override Nix-managed setup.
 - For bash and zsh, generated dispatcher files live at `~/.config/<shell>/rc/<startup-file>.<shell>`, next to but not inside the startup-file-specific hook directory. Dispatchers source only sibling hooks matching `[0-9][0-9]-*.<shell>` from `~/.config/<shell>/rc/<startup-file>.d/`.
-- `lib/home/unmanaged-program.nix` should not know shell hook layout or individual shell semantics. Bash hook paths, `shopt -s nullglob`, and `50-nix-managed.bash` live in `modules/home/programs/unmanaged/bash.nix`; zsh hook paths, `(N)` glob qualifiers, and `50-nix-managed.zsh` live in `modules/home/programs/unmanaged/zsh.nix`.
+- `lib/home/unmanaged-program.nix` should not know shell hook layout or individual shell semantics. Bash hook paths, `shopt -s nullglob`, and `50-nix-managed.bash` live in `modules/home/pkgUnmanagedBash.nix`; zsh hook paths, `(N)` glob qualifiers, and `50-nix-managed.zsh` live in `modules/home/pkgUnmanagedZsh.nix`.
 - Home Manager's `programs.zsh` option namespace is not enough by itself. Home Manager's native zsh module contributes important generated content only when `programs.zsh.enable` is true, including `typeset -U path cdpath fpath manpath`, `fpath` additions from `NIX_PROFILES`, `HELPDIR`, completion initialization, history setup, shell options, aliases, and plugin-framework content.
 - Home Manager session variables are generated into `config.home.sessionVariablesPackage` as `etc/profile.d/hm-session-vars.sh`. Native Home Manager zsh places this in `.zshenv` for non-login shells and `.zprofile` for login shells; unmanaged zsh preserves that by copying the native generated file bodies into its own hooks.
 - Home Manager's native bash module writes fixed top-level file bodies for `.bash_profile`, `.profile`, `.bashrc`, and `.bash_logout`. Unmanaged bash mirrors those formulas after `programs.bash` options have merged, then writes the result into `50-nix-managed.bash` hooks.

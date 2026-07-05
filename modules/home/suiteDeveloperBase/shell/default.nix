@@ -16,11 +16,12 @@ let
   sessionVariables = import ./cfg-session-variables.nix;
 in
 {
-  # `shell-zsh` contains the zsh implementation details. This parent module is
+  # `shZsh` contains the zsh implementation details. This parent module is
   # for shell-adjacent tools and cross-shell policy.
   imports = [
-    ./shell-fish
-    ./shell-zsh
+    ./shBash
+    ./shFish
+    ./shZsh
   ];
 
   programs = {
@@ -45,7 +46,7 @@ in
     };
 
     # Directory listings are intentionally eza-backed. We disable Home Manager's
-    # generated zsh aliases because `shell-zsh/cfg-aliases.nix` owns the exact
+    # generated zsh aliases because `shZsh/cfg-aliases.nix` owns the exact
     # short aliases and comments explaining them.
     eza = {
       enable = true;

@@ -26,9 +26,9 @@ Read this file before editing the repo. This project is a slow migration from Do
 
 Use Blueprint's folders by what they produce:
 
-- `packages/` contains derivations and other buildable artifacts.
-- `modules/home/programs/` contains lower-level Home Manager integrations for one program.
-- `modules/home/suites/` contains higher-level Home Manager compositions that enable multiple programs or integrations together.
+- `packages/<name>.nix` or `packages/<name>/default.nix` contains package derivations and other buildable artifacts.
+- `modules/home/pkg<Name>.nix` or `modules/home/pkg<Name>/default.nix` contains lower-level Home Manager integrations for one program or package family, using camelCase after the `pkg` prefix.
+- `modules/home/suite<Name>.nix` or `modules/home/suite<Name>/default.nix` contains higher-level Home Manager compositions that enable multiple programs or integrations together, using camelCase after the `suite` prefix.
 - `modules/darwin/`, `modules/nixos/`, and `modules/system-manager/` contain shared system modules.
 - `hosts/<host>/` contains host-specific system facts.
 - `hosts/<host>/users/<username>/home-configuration.nix` contains the per-user Home Manager enablement choices for that host.
@@ -40,9 +40,9 @@ Prefer `lib/` for reusable Nix helpers such as option builders, naming helpers, 
 
 ## Package And Module Boundaries
 
-- Low-level program derivations belong under `packages/programs/<name>/`.
-- Low-level Home Manager integrations belong under `modules/home/programs/<name>/`.
-- Higher-level Home Manager bundles belong under `modules/home/suites/<name>/`.
+- Package derivations belong under `packages/<name>.nix` or `packages/<name>/default.nix`.
+- Low-level Home Manager integrations belong under `modules/home/pkg<Name>.nix` or `modules/home/pkg<Name>/default.nix`.
+- Higher-level Home Manager bundles belong under `modules/home/suite<Name>.nix` or `modules/home/suite<Name>/default.nix`.
 - `hosts/<host>/users/<username>/home-configuration.nix` should choose what to enable for that user on that host; reusable behavior belongs in modules.
 - Host-user app configuration belongs under `hosts/<host>/users/<username>/home/<program>.nix`, or under `hosts/<host>/users/<username>/home/<program>/default.nix` when the program needs companion files.
 - `users.users.<name>.home` is a nix-darwin system option and belongs in the Darwin host layer, not inside Home Manager modules.
