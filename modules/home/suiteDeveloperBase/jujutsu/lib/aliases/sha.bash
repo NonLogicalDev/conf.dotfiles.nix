@@ -7,4 +7,6 @@
 # Outputs:
 #   Writes the full Git commit id to stdout.
 
+set -euo pipefail
+
 jj --ignore-working-copy log -n 1 -GT 'self.commit_id()' -r "${1:-@}"

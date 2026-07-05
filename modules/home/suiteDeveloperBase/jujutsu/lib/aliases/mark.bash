@@ -11,6 +11,8 @@
 # Side effects:
 #   Creates one JJ bookmark.
 
+set -euo pipefail
+
 gen_suffix() { ( LC_ALL=C tr -dc 'a-z0-9' < /dev/urandom || true ) | head -c 5; }
 jji() { jj --ignore-working-copy "$@"; }
 

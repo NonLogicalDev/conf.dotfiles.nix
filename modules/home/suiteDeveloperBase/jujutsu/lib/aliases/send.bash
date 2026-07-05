@@ -14,6 +14,8 @@
 # Side effects:
 #   Force-pushes one Git ref to the selected remote namespace.
 
+set -euo pipefail
+
 jji() { jj --ignore-working-copy "$@"; }
 
 jj_ref="${1:-@}"

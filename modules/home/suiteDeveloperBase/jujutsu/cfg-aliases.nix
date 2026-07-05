@@ -80,17 +80,11 @@ in
 
     # Squash the current branch stack back into the nearest bookmark while
     # preserving the destination message. Useful after a series of small fixups.
-    sqb = jjAliasBashFile {
-      file = ./lib/aliases/sqb.bash;
-      shellOptions = "-euxo";
-    };
+    sqb = jjAliasBashFile { file = ./lib/aliases/sqb.bash; };
 
     # Squash the current change into its parent. This is the one-change version
     # of `sqb` for immediate local cleanup.
-    sqp = jjAliasBashFile {
-      file = ./lib/aliases/sqp.bash;
-      shellOptions = "-euxo";
-    };
+    sqp = jjAliasBashFile { file = ./lib/aliases/sqp.bash; };
 
     # Create a short random bookmark on a chosen change. This is a lightweight
     # way to mark a useful point in a stack without inventing a polished branch

@@ -11,6 +11,8 @@
 #   Deletes local bookmarks, untracks/forgets remote bookmark refs, and removes
 #   the matching Git ref when a remote reference is supplied.
 
+set -euo pipefail
+
 jji() { jj --ignore-working-copy "$@"; }
 
 jj_ref="$1"

@@ -1,21 +1,20 @@
 rec {
   # Jujutsu aliases are rendered as argv arrays in TOML. Shell-backed aliases
-  # therefore need the full `jj util exec -- bash ... -c <script> <arg0>` shape
+  # therefore need the full `jj util exec -- bash -c <script> <arg0>` shape
   # every time. Keep that boilerplate here so alias files can focus on the
-  # workflow script they are actually defining.
+  # workflow script they are actually defining. Shell modes such as
+  # `set -euo pipefail` belong in the script body because `pipefail` is not a
+  # cleanly separable argv concern.
   jjAliasBash =
     {
       script,
       shellArg0 ? "",
-      shellOptions ? "-euo",
     }:
     [
       "util"
       "exec"
       "--"
       "bash"
-      shellOptions
-      "pipefail"
       "-c"
       script
       shellArg0
@@ -28,10 +27,9 @@ rec {
     {
       file,
       shellArg0 ? "",
-      shellOptions ? "-euo",
     }:
     jjAliasBash {
       script = builtins.readFile file;
-      inherit shellArg0 shellOptions;
+      inherit shellArg0;
     };
 }

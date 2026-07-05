@@ -7,6 +7,8 @@
 # Outputs:
 #   Writes zero or more bookmark names separated by newlines.
 
+set -euo pipefail
+
 jj --ignore-working-copy log \
   -n 1 -G \
   -r 'bookmarks() & ::@' \

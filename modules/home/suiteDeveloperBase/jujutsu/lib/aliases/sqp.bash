@@ -10,4 +10,6 @@
 # Side effects:
 #   Rewrites the current JJ change and its parent.
 
+set -euxo pipefail
+
 jj squash --use-destination-message --from "@" --to "@-"

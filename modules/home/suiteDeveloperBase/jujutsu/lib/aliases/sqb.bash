@@ -10,4 +10,6 @@
 # Side effects:
 #   Rewrites the current JJ stack.
 
+set -euxo pipefail
+
 jj squash --use-destination-message --from "closest_bookmark(@)..@" --to "closest_bookmark(@)"

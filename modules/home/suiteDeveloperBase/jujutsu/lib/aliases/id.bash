@@ -7,4 +7,6 @@
 # Outputs:
 #   Writes the full change id to stdout.
 
+set -euo pipefail
+
 jj --ignore-working-copy log -n 1 -GT 'self.change_id()' -r "${1:-@}"

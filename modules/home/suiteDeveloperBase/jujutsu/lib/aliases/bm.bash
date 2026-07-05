@@ -7,6 +7,8 @@
 # Outputs:
 #   Writes one bookmark name, or an empty line when none is reachable.
 
+set -euo pipefail
+
 jj --ignore-working-copy log \
   -n 1 -G \
   -r 'bookmarks() & ::@' \

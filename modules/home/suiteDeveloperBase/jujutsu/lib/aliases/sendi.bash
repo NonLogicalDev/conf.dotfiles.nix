@@ -9,6 +9,8 @@
 # Side effects:
 #   Delegates to `jj send`, which may force-push a Git ref.
 
+set -euo pipefail
+
 jji() { jj --ignore-working-copy "$@"; }
 
 jj_local_bookmarks=$(jji log -GT 'json(self.bookmarks())' -r 'bookmarks() & mine()' | jq -r '.[]|.name' | grep -v "/jj-publish/")
