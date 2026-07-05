@@ -25,9 +25,10 @@ let
   };
   unmanagedProgram = inputs.self.lib.home.unmanagedProgram { inherit lib; };
 
-  hookDir = name: ".config/bash/config/${name}";
+  hookDir = name: ".config/bash/rc/${name}.d";
+  dispatcherPath = name: ".config/bash/rc/${name}.bash";
   targetPath = name: ".${name}";
-  defaultHookName = "50-nix.bash";
+  defaultHookName = "50-nix-managed.bash";
 
   managedFileOption =
     { target }:
@@ -74,7 +75,7 @@ let
           dotfiles_nix_had_nullglob=0
         fi
         shopt -s nullglob
-        for dotfiles_nix_hook in "$dotfiles_nix_hook_dir"/*.bash; do
+        for dotfiles_nix_hook in "$dotfiles_nix_hook_dir"/[0-9][0-9]-*.bash; do
           if [ -r "$dotfiles_nix_hook" ]; then
             . "$dotfiles_nix_hook"
           fi
@@ -92,12 +93,21 @@ let
       enabledFiles = filterAttrs (_: file: file.enable) cfg.files;
     in
     {
-      home.file = mapAttrs' (
-        name: file:
-        nameValuePair "${hookDir name}/${file.hookName}" {
-          text = file.text;
-        }
-      ) enabledFiles;
+      home.file =
+        (mapAttrs' (
+          name: file:
+          nameValuePair "${hookDir name}/${file.hookName}" {
+            text = file.text;
+          }
+        ) enabledFiles)
+        // (mapAttrs' (
+          name: _:
+          nameValuePair (dispatcherPath name) {
+            text = mkBashHookSourceBlock {
+              hookDir = "$HOME/${hookDir name}";
+            };
+          }
+        ) enabledFiles);
 
       home.activation = mapAttrs' (
         name: file:
@@ -105,9 +115,7 @@ let
           managedBlock.mkActivation {
             name = "bash ${name}";
             target = targetPath name;
-            block = mkBashHookSourceBlock {
-              hookDir = "$HOME/${hookDir name}";
-            };
+            block = ''. "$HOME/${dispatcherPath name}"'';
             placement = {
               mode = "after-preamble";
               relocateExisting = true;

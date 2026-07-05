@@ -25,9 +25,10 @@ let
   };
   unmanagedProgram = inputs.self.lib.home.unmanagedProgram { inherit lib; };
 
-  hookDir = name: ".config/zsh/config/${name}";
+  hookDir = name: ".config/zsh/rc/${name}.d";
+  dispatcherPath = name: ".config/zsh/rc/${name}.zsh";
   targetPath = name: ".${name}";
-  defaultHookName = "50-nix.zsh";
+  defaultHookName = "50-nix-managed.zsh";
 
   managedFileOption =
     { target }:
@@ -68,7 +69,7 @@ let
     ''
       dotfiles_nix_hook_dir="${hookDir}"
       if [ -d "$dotfiles_nix_hook_dir" ]; then
-        for dotfiles_nix_hook in "$dotfiles_nix_hook_dir"/*.zsh(N); do
+        for dotfiles_nix_hook in "$dotfiles_nix_hook_dir"/[0-9][0-9]-*.zsh(N); do
           if [ -r "$dotfiles_nix_hook" ]; then
             . "$dotfiles_nix_hook"
           fi
@@ -83,12 +84,21 @@ let
       enabledFiles = filterAttrs (_: file: file.enable) cfg.files;
     in
     {
-      home.file = mapAttrs' (
-        name: file:
-        nameValuePair "${hookDir name}/${file.hookName}" {
-          text = file.text;
-        }
-      ) enabledFiles;
+      home.file =
+        (mapAttrs' (
+          name: file:
+          nameValuePair "${hookDir name}/${file.hookName}" {
+            text = file.text;
+          }
+        ) enabledFiles)
+        // (mapAttrs' (
+          name: _:
+          nameValuePair (dispatcherPath name) {
+            text = mkZshHookSourceBlock {
+              hookDir = "$HOME/${hookDir name}";
+            };
+          }
+        ) enabledFiles);
 
       home.activation = mapAttrs' (
         name: file:
@@ -96,9 +106,7 @@ let
           managedBlock.mkActivation {
             name = "zsh ${name}";
             target = targetPath name;
-            block = mkZshHookSourceBlock {
-              hookDir = "$HOME/${hookDir name}";
-            };
+            block = ''. "$HOME/${dispatcherPath name}"'';
             placement = {
               mode = "after-preamble";
               relocateExisting = true;
