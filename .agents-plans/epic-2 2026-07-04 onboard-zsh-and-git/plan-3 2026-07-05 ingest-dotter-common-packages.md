@@ -55,6 +55,9 @@ This repository already uses the host-user convention `hosts/nonlogicals-mbp/use
 - Keep the Atuin slice focused on client behavior. Local service/dev helpers such as `Justfile` and `compose.yml` are not migrated into Home Manager unless a later system/service slice intentionally owns the Atuin server.
 - Expose Atuin local server control through the Atuin Home Manager profile, not `packages/`. `atuin-server-up` and `atuin-server-down` carry the useful behavior of the old Compose/Justfile setup while keeping operational defaults overridable through environment variables. The top-level `packages/` tree is reserved for reusable tools.
 - Migrate tmux through Home Manager's native `programs.tmux` options plus one focused `extra.conf` file for status bar and keybinding behavior. Keep a top-level `.tmux.conf` bridge that sources the XDG config so tmux startup remains compatible while Home Manager replaces the old Dotter symlink.
+- Migrate Jujutsu through Home Manager's native `programs.jujutsu.settings` as the source of truth for `~/.config/jj/config.toml`. The old Dotter `conf.d` files become small Home Manager-owned tombstone files so jj does not continue loading stale Dotter symlinks after activation.
+- Keep mutable Jujutsu repository metadata under `~/.config/jj/repos/` unmanaged. That directory is application state, not durable profile configuration.
+- Keep `jq`, `gum`, and `git` as dependencies of the Jujutsu user profile because several migrated `jj` aliases shell out to them. Do not promote them into a broad common package list from this slice alone.
 
 ## Implementation Steps
 
@@ -81,6 +84,8 @@ This repository already uses the host-user convention `hosts/nonlogicals-mbp/use
 - The live tmux setup had both `~/.tmux.conf` and `~/.config/tmux/` as Dotter symlinks. Home Manager writes `~/.config/tmux/tmux.conf`; a small top-level bridge is enough to preserve tmux startup behavior without keeping duplicate config.
 - The old tmux `init.sh` and `bin/hooks/tmux/on-start.sh` are not active tmux configuration. The `init.sh` only handled `reattach-to-user-namespace`, so it is not migrated in this slice.
 - The tmux migration intentionally fixes the old `copy-modj-vi` typo by binding `y` in `copy-mode-vi`, matching the intended behavior rather than the exact old file.
+- Jujutsu loads global config in this order: `~/.jjconfig.toml`, `~/.config/jj/config.toml`, then `~/.config/jj/conf.d/*.toml`. Managing only `config.toml` would not disable the old Dotter `conf.d` symlinks, so the migration also owns the three legacy `conf.d` paths with comment-only files.
+- Home Manager merges option values across imported Nix modules. Defining the same list-valued alias, such as `aliases.lg`, in two imported modules concatenates the command arrays instead of replacing the alias. Each `jj` alias should have a single owner module unless `lib.mkForce` is used intentionally.
 
 ## Work Log
 
@@ -92,8 +97,9 @@ This repository already uses the host-user convention `hosts/nonlogicals-mbp/use
 - [x] 2026-07-05 01:08 - Verified generated `atuin-server-up` and `atuin-server-down` with `bash -n`, confirmed only Atuin client TOML is installed under `.config/atuin`, and reran `nix flake check`.
 - [x] 2026-07-05 01:16 - Added the tmux Home Manager profile with native options, focused `extra.conf`, and a top-level `.tmux.conf` bridge.
 - [x] 2026-07-05 01:22 - Verified the generated tmux files, parsed the generated config with an isolated tmux socket, and reran `nix flake check`.
+- [x] 2026-07-05 01:29 - Added the Jujutsu Home Manager profile, replaced legacy `conf.d` symlinks with managed tombstones, validated generated config through `jj config list`, and reran `nix flake check`.
 
 ## Unfinished Work
 
-- [ ] Decide whether the next app slice should be `jj`, `vifm`, fish compatibility, or script packaging.
+- [ ] Decide whether the next app slice should be `vifm`, fish compatibility, or script packaging.
 - [ ] Review `common/bin` and `common/git/bin` helper scripts command by command before converting any into Blueprint packages.
