@@ -30,6 +30,8 @@ The current dotfiles situation is treated as a working but chaotic garden. This 
 - Add `system-manager` as an available system-profile target, but wait to create a `system-configuration.nix` host until there is a real non-NixOS system to model.
 - Use `lib/` for Nix-native helpers that do not produce artifacts; keep buildable artifacts in `packages/` and configurable behavior in `modules/`.
 - Move agent-facing repo conventions out of `README.md` and into repo-local `AGENTS.md`.
+- Keep migration principles and current next-step memory in `AGENTS.md`, not in the human-facing README.
+- Keep repository layout details in `README.md` because they are useful project documentation.
 
 ## Implementation Steps
 
@@ -55,6 +57,8 @@ The current dotfiles situation is treated as a working but chaotic garden. This 
 - Blueprint maps `hosts/<hostname>/system-configuration.nix` to `systemConfigs.<hostname>` when the `system-manager` input is present.
 - Blueprint exposes `lib/default.nix` as `flake.lib`, making it the right place for reusable Nix helper functions and non-artifact data.
 - Repo operating conventions should live in `AGENTS.md`; keep `README.md` focused on project intent and human-facing status.
+- Starting principles and bootstrapping status are agent memory for future work, not README content.
+- Layout details are human-facing enough to keep in `README.md`; detailed enforcement still lives in `AGENTS.md`.
 
 ## Work Log
 
@@ -68,6 +72,8 @@ The current dotfiles situation is treated as a working but chaotic garden. This 
 - [x] 2026-07-04 17:18 - Added the `system-manager` input and a light shared module placeholder.
 - [x] 2026-07-04 17:34 - Documented the planned `lib/` slot for Nix-native helpers.
 - [x] 2026-07-04 17:37 - Moved agent-facing organization guidance from `README.md` into `AGENTS.md`.
+- [x] 2026-07-04 17:39 - Moved migration principles and current next-step memory from `README.md` into `AGENTS.md`.
+- [x] 2026-07-04 17:39 - Restored concise layout documentation to `README.md`.
 
 ## Unfinished Work
 

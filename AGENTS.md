@@ -2,12 +2,20 @@
 
 Read this file before editing the repo. This project is a slow migration from Dotter-managed dotfiles to Nix-managed user and system profiles.
 
+## Migration Memory
+
+- Take small, reviewable steps.
+- Prefer explicit ownership over clever abstraction.
+- Keep migration reversible until each slice is proven.
+- Do not move secrets into the repo.
+- Do not rewrite working config just because it looks messy.
+- The repo was bootstrapped with an empty `INIT` commit, followed by README and `$Tasker_Plan` scaffolding.
+- Next migration step: perform a read-only inventory of the current Dotter layout and existing dotfiles before migrating real config.
+
 ## Project Rules
 
 - Use `numtide/blueprint` directly as the flake output mapper.
 - Do not add `flake-parts`.
-- Keep migration steps small and reversible.
-- Do not move secrets into the repo.
 - Do not migrate real dotfiles before inventorying Dotter ownership and current behavior.
 - Keep shared modules free of personal host/user constants unless the value is genuinely shared.
 - Keep `modules/home/core.nix` explicitly light during bootstrap. Do not add common packages there until inventory shows what should be owned.

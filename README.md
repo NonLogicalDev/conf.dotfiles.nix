@@ -15,14 +15,11 @@ The flake is Blueprint-native and is intended to grow into three system-profile 
 - NixOS for full Nix-managed hosts.
 - `system-manager` for non-NixOS systems where Nix should manage selected system state.
 
-## Starting Principles
+## Layout
 
-- Take small, reviewable steps.
-- Prefer explicit ownership over clever abstraction.
-- Keep migration reversible until each slice is proven.
-- Do not move secrets into the repo.
-- Do not rewrite working config just because it looks messy.
-
-## Current Status
-
-Bootstrapped with an empty `INIT` commit, then this README and the first `$Tasker_Plan` file. Next step is a read-only inventory of the current Dotter layout and existing dotfiles.
+- `packages/` contains derivations and other buildable artifacts.
+- `modules/home/programs/` contains lower-level Home Manager integrations for one program.
+- `modules/home/suites/` contains higher-level Home Manager compositions that enable multiple programs or integrations together.
+- `modules/darwin/`, `modules/nixos/`, and `modules/system-manager/` contain shared system modules.
+- `hosts/<host>/` contains host-specific system facts and the per-user enablement choices for that host.
+- `lib/` contains Nix-native helper functions and data that do not produce artifacts by themselves.
