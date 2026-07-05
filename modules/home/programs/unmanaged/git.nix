@@ -29,6 +29,22 @@ in
       default = "";
       description = "Nix-managed git config written to ~/.config/dotfiles-nix/git/config.";
     };
+
+    includeTarget = mkOption {
+      type = types.enum [
+        ".gitconfig"
+        ".config/git/config"
+      ];
+      default = ".gitconfig";
+      description = ''
+        Mutable Git config file that should receive the managed include block.
+
+        Git reads both ~/.config/git/config and ~/.gitconfig for normal
+        config loading, with later values winning. Git's own `git config
+        --global` write target depends on which of those files already
+        exists, so this option keeps the coexistence boundary explicit.
+      '';
+    };
   };
 
   config = mkIf cfg.enable (mkMerge [
@@ -42,7 +58,7 @@ in
 
       home.activation.unmanaged-git-gitconfig = managedBlock.mkActivation {
         name = "git gitconfig";
-        target = ".gitconfig";
+        target = cfg.includeTarget;
         block = ''
           [include]
               path = ~/.config/dotfiles-nix/git/config

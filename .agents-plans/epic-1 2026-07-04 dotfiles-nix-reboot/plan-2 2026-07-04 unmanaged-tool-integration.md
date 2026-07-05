@@ -50,13 +50,14 @@ The desired middle ground is: conventional top-level files remain mutable and to
 - Allow `lib/home/managed-block.nix` callers to choose where a new block is inserted. Default to appending, but support an `after-preamble` mode with caller-provided line regexes so shebangs, file headers, and doc comments can remain before the managed block.
 - Import the unmanaged bash, git, and zsh modules explicitly from `modules/home/core.nix`; avoid a `modules/home/programs/unmanaged/default.nix` that only hides a short module list.
 - In this Blueprint flake's module graph, Home Manager submodules receive `inputs`, so leaf modules should use `inputs.self.lib.home.*` for repo-local helpers instead of deep relative imports or `_module.args` plumbing.
+- Git pressure tests on Apple Git 2.50.1 show that normal Git config loading reads `~/.config/git/config` and `~/.gitconfig`, but `git config --global` has narrower behavior: it does not expand includes unless `--includes` is passed, and its write target depends on which global config file exists. Keep the Git include target configurable.
 
 ## Implementation Steps
 
 1. [ ] Inventory existing top-level zsh, bash, and git files and identify third-party mutation patterns.
 2. [x] Design a shared managed-block activation helper under `lib/home/`.
 3. [x] Sketch `programs.unmanaged.zsh` with separate entries for `.zshenv`, `.zprofile`, and `.zshrc`.
-4. [x] Sketch `programs.unmanaged.git` for a managed include block in `~/.gitconfig`.
+4. [x] Sketch `programs.unmanaged.git` for a managed include block in either `~/.gitconfig` or `~/.config/git/config`.
 5. [x] Define native program conflict assertions for zsh, bash, and git.
 6. [ ] Prototype one low-risk tool integration after the Dotter inventory is complete.
 
@@ -69,7 +70,7 @@ The desired middle ground is: conventional top-level files remain mutable and to
 	- `.zshenv`: tiny, always sourced, no interactive assumptions.
 	- `.zprofile`: login-shell setup.
 	- `.zshrc`: interactive shell setup.
-- For git, a managed block in `~/.gitconfig` can include the Nix-managed fragment while preserving arbitrary top-level changes.
+- For git, a managed block in `~/.gitconfig` or `~/.config/git/config` can include the Nix-managed fragment while preserving arbitrary top-level changes.
 - The migration ladder is:
 	1. Top-level file mutable, Nix injects a marked include/source block.
 	2. Nix manages most real config in fragments.
@@ -86,6 +87,7 @@ The desired middle ground is: conventional top-level files remain mutable and to
 - [x] 2026-07-04 18:19 - Replaced deep relative helper imports with `inputs.self.lib.home.*` in the unmanaged submodules and revalidated with `nix flake check`.
 - [x] 2026-07-04 18:36 - Added explanatory comments to the repo-local `lib/` files so readers do not need deep Nix or Home Manager module knowledge to follow the helper boundaries.
 - [x] 2026-07-04 18:42 - Added managed-block placement control with default append behavior and an `after-preamble` mode for configurable shebang/header/comment preservation.
+- [x] 2026-07-04 18:47 - Pressure-tested Git global config loading and added `programs.unmanaged.git.includeTarget` so the managed include block can live in either `~/.gitconfig` or `~/.config/git/config`.
 
 ## Unfinished Work
 
