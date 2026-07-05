@@ -1,21 +1,21 @@
 if [[ -d "$HOME/.krew" ]]; then
-  path_prepend "$HOME/.krew/bin"
+  path=( "$HOME/.krew/bin" ${path:#"$HOME/.krew/bin"} )
 fi
 
 if (( $+commands[python3] )); then
   python_user_bin="$(python3 -m site --user-base 2>/dev/null)/bin"
-  [[ -d "$python_user_bin" ]] && path_prepend "$python_user_bin"
+  [[ -d "$python_user_bin" ]] && path=( "$python_user_bin" ${path:#"$python_user_bin"} )
   unset python_user_bin
 fi
 
 if [[ -d "$HOME/.poetry" ]]; then
-  path_prepend "$HOME/.poetry/bin"
+  path=( "$HOME/.poetry/bin" ${path:#"$HOME/.poetry/bin"} )
   [[ -r "$HOME/.poetry/env" ]] && source "$HOME/.poetry/env"
 fi
 
 if [[ -s "$HOME/.cargo/env" ]]; then
   source "$HOME/.cargo/env"
-  path_prepend "$HOME/.cargo/bin"
+  path=( "$HOME/.cargo/bin" ${path:#"$HOME/.cargo/bin"} )
 fi
 
 if (( $+commands[nvim] )); then

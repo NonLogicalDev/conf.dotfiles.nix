@@ -39,6 +39,7 @@ The old `zshrc` flow sources every plugin file from `~/.config/zsh/plugins/*.zsh
 - Keep the custom `microprompt` prompt as a small companion file for now because it is bespoke behavior rather than a packaged zsh plugin.
 - Keep custom functions and unusual key bindings as companion snippets initially, then continue shrinking them in later zsh slices.
 - Remove staged files that become fully represented by Nix or focused companion snippets.
+- Keep `path_list` as a small interactive utility, but do not keep custom path mutation helpers. Direct zsh `path=(...)` array edits are clear enough at the remaining call sites.
 
 ## Implementation Steps
 
@@ -60,6 +61,7 @@ The old `zshrc` flow sources every plugin file from `~/.config/zsh/plugins/*.zsh
 - `programs.zsh.dotDir` should remain compatible with the unmanaged top-level bridge. The bridge should source Home Manager-owned files without hardcoding the user home path in reusable modules.
 - The collapsed zsh profile uses an absolute `programs.zsh.dotDir` derived from `config.home.homeDirectory` to avoid Home Manager's relative-dotDir deprecation warning while still avoiding a hardcoded user path.
 - `programs.unmanaged.zsh` successfully copies Home Manager's generated zsh file bodies into `~/.config/zsh/rc/<startup-file>.d/50-nix-managed.zsh` hooks and keeps conventional top-level zsh files mutable.
+- The old `path_prepend`, `path_append`, and `path_drop` helpers were unnecessary after the collapse. The remaining path mutations are local and clearer as direct `path=( "$dir" ${path:#"$dir"} )` expressions.
 
 ## Work Log
 
@@ -68,6 +70,7 @@ The old `zshrc` flow sources every plugin file from `~/.config/zsh/plugins/*.zsh
 - [x] 2026-07-04 22:54 - Replaced the staged zsh mirror with a Home Manager profile using native zsh, fzf, direnv, zoxide, mise, bat, eza, syntax highlighting, history substring search, and packaged zsh plugins.
 - [x] 2026-07-04 22:54 - Removed the copied Dotter zsh file tree and kept focused companion snippets under `home/zsh/lib/`.
 - [x] 2026-07-04 22:54 - Verified generated zsh hook files with `zsh -n` and ran `nix flake check`.
+- [x] 2026-07-04 22:48 - Removed custom path mutation helpers while keeping `path_list` available as an interactive utility.
 
 ## Unfinished Work
 
