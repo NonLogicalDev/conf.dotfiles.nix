@@ -48,6 +48,11 @@ in
     fzf = {
       enable = true;
       enableZshIntegration = true;
+
+      # Atuin is the history UI in this profile, so fzf should not also bind
+      # Ctrl-R. Keeping fzf enabled still provides the command-line fuzzy finder
+      # and completion integration used by other tools.
+      historyWidget.command = "";
     };
 
     # Pager defaults. These options keep output searchable, color-capable, and
