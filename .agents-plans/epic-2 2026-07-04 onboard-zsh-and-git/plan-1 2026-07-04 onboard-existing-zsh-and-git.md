@@ -67,6 +67,7 @@ No obvious secret patterns were found in the inspected zsh/Git paths during the 
 - Treat the current GitHub credential helper's concrete Nix store path as a migration smell. Prefer a future Nix-managed `gh` package path or a Git credential helper integration rather than copying the old store path as a durable config value.
 - Migrate Git first because most of the existing Git behavior maps cleanly to `programs.git.settings`, `programs.git.ignores`, and the existing unmanaged Git include bridge.
 - Use only `.config/git/config` as the unmanaged Git include target for now. `~/.gitconfig` does not exist today, and including both locations would duplicate multi-valued settings such as credential helpers if Git reads both files.
+- Keep large per-app Home Manager modules readable by pulling semantic config sections into sibling files named with a `cfg-` prefix, for example `cfg-aliases.nix` and `cfg-aliases-stgit.nix`.
 - For zsh, migrate semantic groups incrementally. Candidate groups are Home Manager package/session integration, history, shell options, completion, aliases, environment variables, key bindings, plugin setup, prompt/theme behavior, and finalizers. Keep script-like pieces as companion files only until they can be translated or intentionally retained.
 
 ## Implementation Steps
@@ -79,8 +80,9 @@ No obvious secret patterns were found in the inspected zsh/Git paths during the 
 6. [x] Import the new per-app modules from `hosts/nonlogicals-mbp/users/nonlogical/home-configuration.nix`.
 7. [x] Build/evaluate the Home Manager profile.
 8. [x] Replace staged Git file copies with idiomatic Home Manager Git settings and the unmanaged Git include bridge.
-9. [ ] Decide the activation cutover plan for existing Dotter-linked zsh files under `~/.config/zsh`.
-10. [ ] Migrate zsh semantic groups into Home Manager/Nix instead of preserving the old file tree as the final structure.
+9. [x] Split the large host-user Git module into `cfg-*.nix` sibling section files.
+10. [ ] Decide the activation cutover plan for existing Dotter-linked zsh files under `~/.config/zsh`.
+11. [ ] Migrate zsh semantic groups into Home Manager/Nix instead of preserving the old file tree as the final structure.
 
 ## Learning Log
 
@@ -96,6 +98,7 @@ No obvious secret patterns were found in the inspected zsh/Git paths during the 
 - Home Manager renders `"stgit.alias"` as Git's `[stgit "alias"]` subsection, and `git config --file` reads the generated values as `stgit.alias.*`.
 - The migrated Git module writes the managed fragment at `~/.config/git/config.d/50-nix-managed.conf`. `programs.unmanaged.git` inserts a small include block into mutable `~/.config/git/config` so Nix-oblivious tools can still edit the top-level file.
 - The direct Home Manager inspection build needs `home.username` and `home.homeDirectory` supplied by the caller or system integration. This repo intentionally does not hardcode those values in reusable modules.
+- Git config sections now live beside `home/git/default.nix` as `cfg-aliases.nix`, `cfg-aliases-stgit.nix`, `cfg-ignore-patterns.nix`, and `cfg-settings.nix`. `default.nix` remains the composition point that wires those sections into Home Manager.
 
 ## Work Log
 
@@ -106,6 +109,8 @@ No obvious secret patterns were found in the inspected zsh/Git paths during the 
 - [x] 2026-07-04 21:59 - Corrected the epic direction after deciding that durable migration should translate behavior into Nix/Home Manager rather than preserve exact Dotter file copies.
 - [x] 2026-07-04 21:59 - Replaced staged Git file copies with `programs.git.settings`, `programs.git.ignores`, `pkgs.gh`, and `programs.unmanaged.git`.
 - [x] 2026-07-04 21:59 - Built an inspection-only Home Manager activation package with inline `home.username` and `home.homeDirectory`, then verified the generated Git config and unmanaged include activation block.
+- [x] 2026-07-04 22:12 - Split the host-user Git module into `cfg-*.nix` sibling files so aliases, StGit aliases, ignore patterns, and general settings can evolve independently.
+- [x] 2026-07-04 22:12 - Verified the split by comparing the generated managed Git config against the pre-split output and running `nix flake check`.
 
 ## Unfinished Work
 
