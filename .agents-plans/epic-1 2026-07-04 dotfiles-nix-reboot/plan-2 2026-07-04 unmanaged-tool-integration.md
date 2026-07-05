@@ -14,9 +14,11 @@ The working name is `programs.unmanaged.<tool>`.
 
 ## Context
 
-Many tools and installers assume they can mutate conventional top-level files such as `~/.zshenv`, `~/.zprofile`, `~/.zshrc`, `~/.bashrc`, and `~/.gitconfig`. The migration should not rely on those tools learning about custom `rc.d` directories or `third-party.gitconfig` files.
+This plan is about coexistence with tools that know nothing about Nix. A shell plugin installer, language runtime installer, editor integration, or CLI setup command will usually look for the standard user files and patch them directly: `~/.zshenv`, `~/.zprofile`, `~/.zshrc`, `~/.bashrc`, or `~/.gitconfig`. It is not realistic to expect every tool to write into a repo-specific drop-in directory or an alternate Git include file.
 
-The desired shape is: top-level legacy files remain mutable, while Nix declaratively patches a small managed block into those files. Home Manager then writes managed fragments elsewhere.
+That creates a conflict with normal Home Manager ownership. If Home Manager owns `~/.zshrc` or `~/.gitconfig` wholesale, then Nix-oblivious tools can still edit those files, but their edits are either overwritten by the next activation or become unmanaged drift. If third-party tools own those files wholesale, Nix cannot reliably add the managed configuration needed for the migration.
+
+The desired middle ground is: conventional top-level files remain mutable and tool-compatible, while Nix owns only a clearly marked block inside each file. That block sources or includes a Nix-managed fragment under `~/.config/dotfiles-nix/<tool>/`. Activation scripts maintain the marked block declaratively and preserve everything outside it.
 
 ## Product Integration
 
@@ -68,6 +70,7 @@ The desired shape is: top-level legacy files remain mutable, while Nix declarati
 ## Work Log
 
 - [x] 2026-07-04 18:02 - Created the unmanaged tool integration design plan from the brainstorming thread.
+- [x] 2026-07-04 18:03 - Rewrote the context section to explain the coexistence problem for a future reader.
 
 ## Unfinished Work
 
