@@ -18,6 +18,23 @@ let
     inherit lib;
     awk = "${pkgs.gawk}/bin/awk";
   };
+
+  mkZshHookSourceBlock =
+    {
+      hookDir,
+      hookExtension,
+    }:
+    ''
+      dotfiles_nix_hook_dir="${hookDir}"
+      if [ -d "$dotfiles_nix_hook_dir" ]; then
+        for dotfiles_nix_hook in "$dotfiles_nix_hook_dir"/*.${hookExtension}(N); do
+          if [ -r "$dotfiles_nix_hook" ]; then
+            . "$dotfiles_nix_hook"
+          fi
+        done
+      fi
+      unset dotfiles_nix_hook_dir dotfiles_nix_hook
+    '';
 in
 {
   options.programs.unmanaged.zsh = {
@@ -50,6 +67,7 @@ in
     (unmanagedProgram.mkShellFileConfig {
       inherit cfg;
       tool = "zsh";
+      mkSourceBlock = mkZshHookSourceBlock;
     })
   ]);
 }

@@ -24,24 +24,22 @@ let
   # file adds conventions for unmanaged program modules on top of it.
   managedBlock = import ./managed-block.nix { inherit lib awk; };
 
-  # Nix-managed fragments live below ~/.config so top-level files such as
-  # ~/.zshrc remain ordinary mutable files for non-Nix-aware tools.
-  fragmentPath = tool: name: ".config/dotfiles-nix/${tool}/${name}";
+  # Shell hook directories live below ~/.config so top-level files such as
+  # ~/.zshrc remain ordinary mutable files for non-Nix-aware tools. Each
+  # startup file gets its own directory so users can add ordered entries next
+  # to the Nix-managed hook, for example:
+  #
+  #   ~/.config/zsh/config/zshenv/99-conda.zsh
+  hookDir = tool: name: ".config/${tool}/config/${name}";
+
+  # The Nix-managed hook uses a middle order number. Earlier user hooks can
+  # prepare state before Nix, while later hooks can override or extend it.
+  defaultHookName = extension: "50-nix.${extension}";
 
   # A managed shell entry targets the conventional dotfile name, for example
   # `zshrc` -> `.zshrc`.
   targetPath = name: ".${name}";
 
-  # The block inserted into a shell startup file should be tiny: if the
-  # generated fragment exists and is readable, source it. Keeping this small
-  # reduces the blast radius in files that other tools may edit.
-  mkShellSourceBlock =
-    { fragmentPath }:
-    ''
-      if [ -r "${fragmentPath}" ]; then
-        . "${fragmentPath}"
-      fi
-    '';
 in
 {
   # Shared option for deciding how an unmanaged module relates to Home
@@ -105,6 +103,7 @@ in
     {
       tool,
       target,
+      hookExtension ? tool,
     }:
     mkOption {
       type = types.submodule {
@@ -118,7 +117,13 @@ in
           text = mkOption {
             type = types.lines;
             default = "";
-            description = "Nix-managed fragment written under ~/.config/dotfiles-nix/${tool}/.";
+            description = "Nix-managed hook content written under ~/.config/${tool}/config/.";
+          };
+
+          hookName = mkOption {
+            type = types.str;
+            default = defaultHookName hookExtension;
+            description = "Filename for the Nix-managed hook inside the ${target} hook directory.";
           };
 
           placement = mkOption {
@@ -132,17 +137,18 @@ in
       description = "Unmanaged ${tool} integration settings for ${target}.";
     };
 
-  # Expose this so a future shell-like unmanaged module can reuse the source
-  # block without opting into the full `mkShellFileConfig` convention.
-  inherit mkShellSourceBlock;
-
   # Shared implementation for shell startup files. Given `cfg.files`, it
   # writes one generated fragment per enabled file and injects a managed
   # source block into the matching top-level dotfile.
+  #
+  # Shell modules provide `mkSourceBlock` because glob and null-match behavior
+  # is shell-specific, and this shared helper should not know those details.
   mkShellFileConfig =
     {
       cfg,
       tool,
+      hookExtension ? tool,
+      mkSourceBlock,
     }:
     let
       # Disabled file entries stay in the option tree but produce no file and
@@ -154,7 +160,7 @@ in
       # path relative to `$HOME`.
       home.file = mapAttrs' (
         name: file:
-        nameValuePair (fragmentPath tool name) {
+        nameValuePair "${hookDir tool name}/${file.hookName}" {
           text = file.text;
         }
       ) enabledFiles;
@@ -167,8 +173,9 @@ in
           managedBlock.mkActivation {
             name = "${tool} ${name}";
             target = targetPath name;
-            block = mkShellSourceBlock {
-              fragmentPath = "$HOME/${fragmentPath tool name}";
+            block = mkSourceBlock {
+              hookDir = "$HOME/${hookDir tool name}";
+              inherit hookExtension;
             };
             placement = {
               # Shell startup files should see the Nix-managed fragment
