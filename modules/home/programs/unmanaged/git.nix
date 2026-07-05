@@ -22,7 +22,6 @@ let
   };
   unmanagedProgram = inputs.self.lib.home.unmanagedProgram {
     inherit lib;
-    awk = "${pkgs.gawk}/bin/awk";
   };
 in
 {

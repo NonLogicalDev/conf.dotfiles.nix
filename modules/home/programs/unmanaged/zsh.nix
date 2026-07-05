@@ -8,26 +8,67 @@
 
 let
   inherit (lib)
+    filterAttrs
+    mapAttrs'
     mkEnableOption
     mkIf
     mkMerge
+    mkOption
+    nameValuePair
+    types
     ;
 
   cfg = config.programs.unmanaged.zsh;
-  unmanagedProgram = inputs.self.lib.home.unmanagedProgram {
+  managedBlock = inputs.self.lib.home.managedBlock {
     inherit lib;
     awk = "${pkgs.gawk}/bin/awk";
   };
+  unmanagedProgram = inputs.self.lib.home.unmanagedProgram { inherit lib; };
+
+  hookDir = name: ".config/zsh/config/${name}";
+  targetPath = name: ".${name}";
+  defaultHookName = "50-nix.zsh";
+
+  managedFileOption =
+    { target }:
+    mkOption {
+      type = types.submodule {
+        options = {
+          enable = mkOption {
+            type = types.bool;
+            default = true;
+            description = "Whether to maintain a managed source block in ${target}.";
+          };
+
+          text = mkOption {
+            type = types.lines;
+            default = "";
+            description = "Nix-managed zsh hook content.";
+          };
+
+          hookName = mkOption {
+            type = types.str;
+            default = defaultHookName;
+            description = "Filename for the Nix-managed zsh hook inside the ${target} hook directory.";
+          };
+
+          placement = mkOption {
+            type = types.attrs;
+            default = { };
+            description = "Advanced managed-block placement settings passed to lib.home.managedBlock.";
+          };
+        };
+      };
+      default = { };
+      description = "Unmanaged zsh integration settings for ${target}.";
+    };
 
   mkZshHookSourceBlock =
-    {
-      hookDir,
-      hookExtension,
-    }:
+    { hookDir }:
     ''
       dotfiles_nix_hook_dir="${hookDir}"
       if [ -d "$dotfiles_nix_hook_dir" ]; then
-        for dotfiles_nix_hook in "$dotfiles_nix_hook_dir"/*.${hookExtension}(N); do
+        for dotfiles_nix_hook in "$dotfiles_nix_hook_dir"/*.zsh(N); do
           if [ -r "$dotfiles_nix_hook" ]; then
             . "$dotfiles_nix_hook"
           fi
@@ -35,6 +76,43 @@ let
       fi
       unset dotfiles_nix_hook_dir dotfiles_nix_hook
     '';
+
+  mkZshFileConfig =
+    { cfg }:
+    let
+      enabledFiles = filterAttrs (_: file: file.enable) cfg.files;
+    in
+    {
+      home.file = mapAttrs' (
+        name: file:
+        nameValuePair "${hookDir name}/${file.hookName}" {
+          text = file.text;
+        }
+      ) enabledFiles;
+
+      home.activation = mapAttrs' (
+        name: file:
+        nameValuePair "unmanaged-zsh-${name}" (
+          managedBlock.mkActivation {
+            name = "zsh ${name}";
+            target = targetPath name;
+            block = mkZshHookSourceBlock {
+              hookDir = "$HOME/${hookDir name}";
+            };
+            placement = {
+              mode = "after-preamble";
+              relocateExisting = true;
+              preambleLineRegexes = [
+                "^#!"
+                "^#($|[[:space:]])"
+                "^[[:space:]]*$"
+              ];
+            }
+            // file.placement;
+          }
+        )
+      ) enabledFiles;
+    };
 in
 {
   options.programs.unmanaged.zsh = {
@@ -43,16 +121,13 @@ in
     nativeProgramPolicy = unmanagedProgram.nativeProgramPolicyOption "zsh";
 
     files = {
-      zshenv = unmanagedProgram.managedFileOption {
-        tool = "zsh";
+      zshenv = managedFileOption {
         target = "~/.zshenv";
       };
-      zprofile = unmanagedProgram.managedFileOption {
-        tool = "zsh";
+      zprofile = managedFileOption {
         target = "~/.zprofile";
       };
-      zshrc = unmanagedProgram.managedFileOption {
-        tool = "zsh";
+      zshrc = managedFileOption {
         target = "~/.zshrc";
       };
     };
@@ -64,10 +139,8 @@ in
       program = "zsh";
       optionName = "programs.unmanaged.zsh";
     })
-    (unmanagedProgram.mkShellFileConfig {
+    (mkZshFileConfig {
       inherit cfg;
-      tool = "zsh";
-      mkSourceBlock = mkZshHookSourceBlock;
     })
   ]);
 }

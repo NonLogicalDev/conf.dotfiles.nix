@@ -41,7 +41,7 @@ The desired middle ground is: conventional top-level files remain mutable and to
 - Store Git's Home Manager or Nix-generated content in managed fragments under `~/.config/dotfiles-nix/git/`.
 - Store shell Home Manager or Nix-generated content as numbered hooks under `~/.config/<shell>/config/<startup-file>/50-nix.<shell>`.
 - Source shell hook directories in lexical order so user-owned hooks such as `~/.config/zsh/config/zshenv/99-conda.zsh` or `~/.config/bash/config/bashrc/99-conda.bash` can extend or override the Nix-managed hook without editing the top-level startup file.
-- Keep shell-specific hook sourcing syntax in each shell module. The shared unmanaged-program helper owns the ordered hook-file convention, but it does not branch on zsh versus bash behavior.
+- Keep shell hook layout and shell-specific hook sourcing syntax in each shell module. The shared unmanaged-program helper owns only the native Home Manager conflict policy, not ordered hook directories or shell startup-file activation.
 - Default native Home Manager program policy should be `forbid`, not silent `mkForce false`.
 - Support an explicit `nativeProgramPolicy` enum:
 	- `forbid`: fail if native `programs.<tool>.enable` is also enabled.
@@ -78,7 +78,7 @@ The desired middle ground is: conventional top-level files remain mutable and to
 - For git, a managed block in `~/.gitconfig` or `~/.config/git/config` can include the Nix-managed fragment while preserving arbitrary top-level changes.
 - For bash and zsh startup files, append placement is too late for the migration use case. The managed source block should be inserted after only the leading preamble, so ordered hook directories can affect the rest of `.bashrc`, `.bash_profile`, `.zshenv`, `.zprofile`, and `.zshrc`.
 - For bash and zsh, the Nix-owned hook defaults to `50-nix.<shell>` inside the startup-file-specific hook directory. Lower numbers can prepare state before Nix; higher numbers can extend or override Nix-managed setup.
-- `lib/home/unmanaged-program.nix` should not know individual shell semantics. Bash uses `shopt -s nullglob`; zsh uses the `(N)` glob qualifier. Those details live in `modules/home/programs/unmanaged/bash.nix` and `modules/home/programs/unmanaged/zsh.nix`.
+- `lib/home/unmanaged-program.nix` should not know shell hook layout or individual shell semantics. Bash hook paths, `shopt -s nullglob`, and `50-nix.bash` live in `modules/home/programs/unmanaged/bash.nix`; zsh hook paths, `(N)` glob qualifiers, and `50-nix.zsh` live in `modules/home/programs/unmanaged/zsh.nix`.
 - For Git config, a near-top include is safer than an appended include because it makes the managed fragment behave like defaults. Existing top-level settings that appear later in `~/.gitconfig` or `~/.config/git/config` continue to win.
 - Home Manager activation scripts should not rely on the user's ambient shell `PATH` for text-processing tools. The managed-block helper accepts an explicit `awk` executable path, and Home Manager modules pass `${pkgs.gawk}/bin/awk`.
 - The migration ladder is:
@@ -102,6 +102,7 @@ The desired middle ground is: conventional top-level files remain mutable and to
 - [x] 2026-07-04 19:06 - Fixed activation to use an explicit Nix-provided `awk`, then verified the disposable test profile activates idempotently with one managed block per top-level file.
 - [x] 2026-07-04 19:07 - Changed unmanaged Git to insert and relocate the managed include near the top of the mutable Git config so later top-level settings remain local overrides.
 - [x] 2026-07-04 19:15 - Changed unmanaged bash and zsh to write Nix-managed hooks under `~/.config/<shell>/config/<startup-file>/50-nix.<shell>` and source all numbered hooks from each startup file, with shell-specific source syntax kept in the shell modules.
+- [x] 2026-07-04 19:24 - Moved shell hook layout ownership out of `lib/home/unmanaged-program.nix` and into the bash and zsh modules.
 
 ## Unfinished Work
 
