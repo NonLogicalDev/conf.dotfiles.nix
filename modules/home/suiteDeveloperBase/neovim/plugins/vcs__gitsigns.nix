@@ -1,4 +1,6 @@
 {
+  # Inline Git hunk awareness and hunk-level actions. This owns editor-local VCS
+  # feedback; command-line Git/JJ behavior stays in the source-control modules.
   programs.nixvim.plugins.gitsigns = {
     enable = true;
     settings.on_attach.__raw = ''

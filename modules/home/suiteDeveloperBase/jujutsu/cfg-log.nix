@@ -7,6 +7,8 @@
     ui.ts-rel = false;
 
     aliases = {
+      # Compact personal log: small stack-oriented graph around the current
+      # change, using the custom template below.
       l = [
         "log"
         "-T"
@@ -17,6 +19,7 @@
         "revsets.log=rlog"
       ];
 
+      # Fuller current-branch log for when the compact template hides too much.
       ll = [
         "log"
         "-n"
@@ -25,6 +28,8 @@
         "revsets.log=::@"
       ];
 
+      # Broader local-stack log: ancestors from trunk plus nearby descendants.
+      # This is the default mental model for "where am I in this stack?"
       lg = [
         "log"
         "-n"
@@ -33,6 +38,8 @@
         "revsets.log=ancestors(trunk()..@, 2) | descendants(@, 3) | @"
       ];
 
+      # Show the first bookmark reachable from the current change. Useful for
+      # scripts or prompts that want one branch-ish name without full log noise.
       bm = [
         "util"
         "exec"
@@ -50,6 +57,8 @@
         ""
       ];
 
+      # Show all bookmarks reachable from the current change. This is the
+      # explicit version of `bm` when multiple labels may matter.
       bma = [
         "util"
         "exec"
@@ -67,6 +76,8 @@
         ""
       ];
 
+      # Bookmark overview for bookmarks owned by this identity. Includes root so
+      # the graph has a stable anchor even when bookmarks are disconnected.
       bl = [
         "log"
         "-n"
@@ -79,8 +90,12 @@
     };
 
     template-aliases = {
+      # `my_*` names are intentionally namespaced so they do not collide with jj
+      # built-ins or future upstream templates.
       "my_muted(tpl)" = ''label("muted", tpl)'';
 
+      # Label calculation is separated from rendering so the compact log can
+      # style working-copy, immutable, mutable, and conflicted commits together.
       "my_log_commit_label(commit)" = ''
         separate(" ",
           if(commit.current_working_copy(), "working_copy"),
@@ -89,6 +104,8 @@
         )
       '';
 
+      # Sigils keep the graph scannable: @ for working copy, a chess-rook-ish
+      # marker for commits on the first-parent path to @, dash otherwise.
       "my_log_commit_sigils(commit)" = ''
         concat(
           coalesce(
@@ -99,6 +116,8 @@
         )
       '';
 
+      # Author display intentionally collapses the current configured identity
+      # to <self>; other authors keep a short email-local label.
       "my_format_author_short(commit)" = ''
         if(commit.mine(),
           label("author self", "<self>"),
@@ -129,6 +148,8 @@
           .replace(" just now", "now")
       '';
 
+      # Keep bookmark/tag rendering out of the main header so long labels do not
+      # crowd out change id, commit id, author, age, and description.
       "my_format_bookmarks(bookmarks)" =
         ''if(bookmarks.len() > 0, concat("(B: ", bookmarks.join(", "), ")"))'';
       "my_format_tags(tags)" = ''if(tags.len() > 0, concat("(T: ", tags.join(", "), ")"))'';
@@ -160,6 +181,8 @@
         ), "...")
       '';
 
+      # This is the actual compact log line used by `jj l`. It trades full
+      # metadata for a stable one-screen review surface.
       my_log_compact = "my_log_compact(self)";
       "my_log_compact(commit)" = ''
         if(commit.root(),

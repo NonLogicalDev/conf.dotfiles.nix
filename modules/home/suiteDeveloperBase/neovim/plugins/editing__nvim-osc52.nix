@@ -2,6 +2,8 @@
 
 {
   programs.nixvim = {
+    # OSC52 yanking makes clipboard copy work through SSH/tmux/terminal sessions
+    # where a native GUI clipboard provider is unavailable.
     extraPlugins = with pkgs.vimPlugins; [
       nvim-osc52
       vim-oscyank
@@ -19,6 +21,8 @@
     '';
 
     keymaps = [
+      # Explicit OSC52 mappings are kept even with the TextYankPost autocmd so
+      # there is a manual escape hatch when automatic clipboard detection fails.
       {
         mode = "v";
         key = "<leader>c";

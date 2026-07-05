@@ -7,6 +7,11 @@
 }:
 
 let
+  # This module exists because some installers still mutate conventional files
+  # such as ~/.bashrc directly. We still want Home Manager's native Bash module
+  # to generate the real Bash content, but we do not want it to own the mutable
+  # top-level files. The bridge writes HM content into numbered hook files and
+  # places one managed source line in each conventional file.
   inherit (lib)
     concatStringsSep
     filter
@@ -35,6 +40,12 @@ let
     awk = "${pkgs.gawk}/bin/awk";
   };
 
+  # Hook layout mirrors the zsh unmanaged bridge:
+  #   ~/.config/bash/rc/bashrc.d/50-nix-managed.bash
+  #   ~/.config/bash/rc/bashrc.bash
+  # The conventional ~/.bashrc only sources the dispatcher. The dispatcher then
+  # sources numbered hooks, leaving room for non-Nix tools or humans to add
+  # later numbered files without teaching those tools about Nix.
   hookDir = name: ".config/bash/rc/${name}.d";
   dispatcherPath = name: ".config/bash/rc/${name}.bash";
   targetPath = name: ".${name}";
@@ -49,6 +60,9 @@ let
 
   nativeBashFileKey = name: ".${name}";
 
+  # Once unmanaged mode is enabled, Home Manager must not symlink the top-level
+  # Bash files directly. It still computes their content above; we copy that
+  # content into hooks and force-disable the native file links afterward.
   disableNativeBashFileLinks = listToAttrs (
     map (name: nameValuePair (nativeBashFileKey name) { enable = mkForce false; }) nativeBashFileNames
   );
@@ -159,6 +173,9 @@ let
       description = "Unmanaged bash integration settings for ${target}.";
     };
 
+  # A hook file combines Home Manager's generated content with any explicit
+  # extra text supplied through programs.unmanaged.bash.files.<name>.text. The
+  # extra text comes last so a profile can deliberately append local behavior.
   mkHookFile = name: file: {
     text = concatStringsSep "\n" (
       filter (text: text != "") [
@@ -202,6 +219,11 @@ let
       unset -f _dotfiles_nix_source_${name}_hooks
     '';
 
+  # For every enabled Bash startup file we generate two things:
+  # 1. the numbered hook that contains Nix/Home Manager content;
+  # 2. a dispatcher file that a tiny managed block in ~/.bashrc-like files can
+  #    source. Keeping logic out of the top-level managed block makes it easier
+  #    for humans and third-party tools to keep editing those files.
   mkBashFileConfig =
     { cfg }:
     let

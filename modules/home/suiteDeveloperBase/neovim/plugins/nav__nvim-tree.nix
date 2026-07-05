@@ -1,9 +1,12 @@
 {
   programs.nixvim = {
+    # nvim-tree is the persistent project tree. Telescope owns fuzzy open/search;
+    # this owns "show me the project shape and current file context".
     plugins.nvim-tree = {
       enable = true;
       settings = {
         disable_netrw = false;
+        # Hijack netrw so directory buffers open in the same file-tree UI.
         hijack_netrw = true;
         renderer = {
           indent_markers = {

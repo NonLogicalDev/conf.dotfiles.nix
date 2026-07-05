@@ -5,10 +5,13 @@
   # in jujutsu config preserves `jj <alias>` muscle memory while Home Manager
   # still owns the rendered TOML.
   programs.jujutsu.settings.aliases = {
+    # Tiny namespace shorthands for commands that are frequent but verbose.
     wt = [ "workspace" ];
     ws = [ "workspace" ];
     f = [ "file" ];
 
+    # Print the JJ change id for a rev. This is the stable review/discussion
+    # handle in JJ, distinct from the Git commit sha.
     id = [
       "util"
       "exec"
@@ -23,6 +26,8 @@
       ""
     ];
 
+    # Print the backing Git commit id for a rev. Useful when crossing the JJ/Git
+    # boundary for pushes, GitHub links, or external tooling.
     sha = [
       "util"
       "exec"
@@ -37,6 +42,8 @@
       ""
     ];
 
+    # Move the nearest bookmark forward to the closest non-empty pushable change.
+    # This is the common "advance my branch pointer after editing a stack" move.
     tug = [
       "bookmark"
       "move"
@@ -46,6 +53,8 @@
       "closest_pushable(@)"
     ];
 
+    # Diff formatter toggles. The default profile uses Git-style diffs; these
+    # aliases make it cheap to switch between Git compatibility and JJ words.
     diff-git = [
       "diff"
       "--config"
@@ -57,6 +66,8 @@
       "ui.diff-formatter=:color-words"
     ];
 
+    # Compare the current change to the fork point with a named bookmark. This
+    # answers "what is my branch doing relative to that bookmark?"
     diff-to = [
       "util"
       "exec"
@@ -76,6 +87,8 @@
       "--"
     ];
 
+    # Compare the fork-point-to-bookmark range between two bookmarks. This is
+    # for branch/review archaeology when two named stacks diverged.
     diff-bw = [
       "util"
       "exec"
@@ -107,6 +120,9 @@
       "---"
     ];
 
+    # Push a JJ change to Git using either an existing bookmark or a generated
+    # change-id branch. This keeps review publishing explicit and avoids
+    # accidentally pushing every local bookmark.
     send = [
       "util"
       "exec"
@@ -186,6 +202,8 @@
       ""
     ];
 
+    # Interactive wrapper around `send` for the common case where the target
+    # bookmark should be selected from current local bookmarks.
     sendi = [
       "util"
       "exec"
@@ -211,6 +229,9 @@
       ""
     ];
 
+    # Divergent-change triage helper. JJ can have multiple commits for one
+    # change id; this checks whether the divergent commits actually differ and
+    # prints the repair command when they do not.
     "fix-div" = [
       "util"
       "exec"
@@ -265,6 +286,8 @@
       ""
     ];
 
+    # Delete or forget a local/remote bookmark. The name is intentionally loud
+    # because it removes references, not changes.
     begone = [
       "util"
       "exec"
@@ -303,6 +326,8 @@
       ""
     ];
 
+    # Squash the current branch stack back into the nearest bookmark while
+    # preserving the destination message. Useful after a series of small fixups.
     sqb = [
       "util"
       "exec"
@@ -317,6 +342,8 @@
       ""
     ];
 
+    # Squash the current change into its parent. This is the one-change version
+    # of `sqb` for immediate local cleanup.
     sqp = [
       "util"
       "exec"
@@ -331,6 +358,9 @@
       ""
     ];
 
+    # Create a short random bookmark on a chosen change. This is a lightweight
+    # way to mark a useful point in a stack without inventing a polished branch
+    # name before the work deserves one.
     mark = [
       "util"
       "exec"

@@ -1,5 +1,8 @@
 {
   programs.nixvim = {
+    # LuaSnip is the snippet engine used by nvim-cmp. It loads both VSCode and
+    # snipmate snippet collections because the old config used snippets from
+    # both ecosystems.
     plugins.luasnip = {
       enable = true;
       settings = {
@@ -12,6 +15,8 @@
     };
 
     keymaps = [
+      # Keep snippet navigation explicit on Ctrl-j/k/l so Tab can remain shared
+      # with completion fallback logic in the cmp module.
       {
         mode = [
           "i"

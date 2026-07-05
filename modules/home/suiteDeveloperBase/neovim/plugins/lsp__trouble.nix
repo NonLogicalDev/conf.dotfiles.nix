@@ -1,5 +1,7 @@
 {
   programs.nixvim = {
+    # Trouble is the structured diagnostics/symbols panel. It complements
+    # Telescope's fuzzy navigation by keeping problem lists persistent.
     plugins.trouble.enable = true;
 
     keymaps = [

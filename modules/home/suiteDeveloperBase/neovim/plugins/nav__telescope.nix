@@ -1,5 +1,7 @@
 {
   programs.nixvim.plugins.telescope = {
+    # Telescope is the main fuzzy navigation surface: files, grep, buffers,
+    # jumplist, and LSP references/definitions.
     enable = true;
 
     extensions = {
@@ -8,6 +10,8 @@
     };
 
     settings = {
+      # Ivy keeps the picker compact at the bottom of the screen, matching the
+      # old preference for search surfaces that do not cover the whole editor.
       defaults.__raw = "require('telescope.themes').get_ivy()";
       pickers = {
         live_grep = {

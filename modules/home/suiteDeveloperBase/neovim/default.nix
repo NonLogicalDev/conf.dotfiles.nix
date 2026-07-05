@@ -5,6 +5,10 @@
 }:
 
 {
+  # This is the NixVim composition root. Plugin modules are grouped by the same
+  # namespace idea as the old Neovim config, but each file now owns one plugin
+  # or one tight plugin family through typed Nix options instead of Lua package
+  # manager declarations.
   imports = [
     inputs.nixvim.homeModules.nixvim
 
@@ -67,7 +71,9 @@
   };
 
   # Companion Lua is grouped by behavior, not by the old Lazy.nvim plugin-file
-  # layout. These files are ordinary Neovim config loaded by init.lua.
+  # layout. These files are ordinary Neovim config loaded by init.lua. Keep this
+  # surface small: plugin-specific setup should move into NixVim plugin modules
+  # when NixVim exposes a clean option for it.
   xdg.configFile = {
     "nvim/lua/dotfiles/autocmds.lua".source = ./lua/dotfiles/autocmds.lua;
     "nvim/lua/dotfiles/keymaps.lua".source = ./lua/dotfiles/keymaps.lua;

@@ -1,4 +1,6 @@
 {
+  # Visible buffer tabs with LSP diagnostics. This preserves the old "which
+  # buffers are open and dirty?" UI without adopting a full tab workflow.
   programs.nixvim.plugins.bufferline = {
     enable = true;
     settings.options = {

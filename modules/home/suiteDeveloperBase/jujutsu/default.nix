@@ -5,12 +5,18 @@
 }:
 
 let
+  # The suite derives personal bookmark namespaces from a neutral SCM slug.
+  # This keeps immutable bookmark policy reusable across machines/users while
+  # still protecting the current user's remote namespace by default.
   cfg = config.dotfiles.suites.developerBase;
   personalBookmarkGlob = "${cfg.scmIdentity.slug}/*";
   immutableBookmarkRevset = "builtin_immutable_heads() | (bookmarks(glob:'${personalBookmarkGlob}'))";
 in
 
 {
+  # Keep JJ subdomains split by purpose. The main module owns identity, UI,
+  # colors, and revsets; sibling files own aliases, log formatting, and
+  # templates because those maps are dense enough to deserve focused comments.
   imports = [
     ./cfg-aliases.nix
     ./cfg-log.nix

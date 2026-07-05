@@ -1,5 +1,8 @@
 {
   programs.nixvim = {
+    # Embedded terminals are for quick project commands without leaving Neovim.
+    # The default is a floating terminal; horizontal/vertical variants stay on
+    # leader mappings for when output needs to remain visible.
     plugins.toggleterm = {
       enable = true;
       settings = {

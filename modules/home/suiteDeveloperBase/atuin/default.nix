@@ -6,6 +6,9 @@
 }:
 
 let
+  # Atuin is both a shell-history client and, in this profile, a local sync
+  # server. Keep every service-owned constant under `svc*` so it is obvious
+  # which values belong to the user service rather than the Atuin client config.
   atuinServer = rec {
     svcLaunchdDomain = "user";
     svcLaunchdLabel = "org.nix-community.home.atuin-server";
@@ -13,6 +16,8 @@ let
     svcNetworkHost = "127.0.0.1";
     svcNetworkPort = "45654";
     svcDirectoryData = "${config.xdg.dataHome}/atuin";
+    # launchd logs to files by convention. Linux systemd uses the user journal,
+    # so this path is explicitly launchd-only instead of a generic log dir.
     svcDirectoryLaunchdLog = "${config.home.homeDirectory}/Library/Logs/atuin";
     svcDatabaseUri = "sqlite://${svcDirectoryData}/server.db";
     svcEnvironment = {
@@ -36,6 +41,9 @@ let
   # Home Manager profile.
   atuinServerToolsLaunchd =
     let
+      # The helpers are intentionally operational commands, not packages under
+      # `packages/`: they know about this profile's service manager and are only
+      # useful after this Home Manager module has installed the agent.
       atuinServerToolLaunchdUp = pkgs.writeShellApplication {
         name = "atuin-server-up";
 
@@ -87,6 +95,8 @@ let
 
   atuinServerToolsSystemd =
     let
+      # Use Home Manager's configured systemctl path so this works on non-NixOS
+      # systems where systemctl may not be in a standard PATH during activation.
       atuinServerCmdSystemctl = config.systemd.user.systemctlPath;
 
       atuinServerToolSystemdUp = pkgs.writeShellApplication {
@@ -226,6 +236,9 @@ in
 
   systemd.user.services.atuin-server = lib.mkIf (pkgs.stdenv.isLinux && config.systemd.user.enable) {
     Unit = {
+      # No network-online dependency: the server binds localhost and uses a
+      # local SQLite database, so delaying login startup on network readiness
+      # would be Linux cargo culting rather than a real dependency.
       Description = "Atuin local sync server";
     };
 

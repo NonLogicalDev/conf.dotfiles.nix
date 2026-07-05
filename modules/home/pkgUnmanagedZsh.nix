@@ -7,6 +7,9 @@
 }:
 
 let
+  # Zsh is the primary shell, and many non-Nix tools still append to ~/.zshrc,
+  # ~/.zprofile, or ~/.zshenv. This module lets Home Manager generate complete
+  # zsh startup content while conventional top-level files remain editable.
   inherit (lib)
     attrByPath
     concatStringsSep
@@ -33,6 +36,11 @@ let
     awk = "${pkgs.gawk}/bin/awk";
   };
 
+  # Hook layout:
+  #   ~/.config/zsh/rc/zshrc.d/50-nix-managed.zsh
+  #   ~/.config/zsh/rc/zshrc.zsh
+  # The top-level ~/.zshrc only sources the dispatcher. The dispatcher owns the
+  # glob over numbered hooks, so managed blocks never contain shell logic.
   hookDir = name: ".config/zsh/rc/${name}.d";
   dispatcherPath = name: ".config/zsh/rc/${name}.zsh";
   targetPath = name: ".${name}";
@@ -71,6 +79,9 @@ let
     (map nativeZshFileKey nativeZshFileNames) ++ (optional (config.lib.zsh.dotDirRel != ".") ".zshenv")
   );
 
+  # Home Manager normally owns files below programs.zsh.dotDir. In unmanaged
+  # mode those rendered files are copied into hooks instead, then disabled so
+  # the mutable top-level files can be maintained by activation blocks.
   disableNativeZshFileLinks = listToAttrs (
     map (name: nameValuePair name { enable = mkForce false; }) nativeZshOwnedFileKeys
   );
@@ -120,6 +131,9 @@ let
       ]
     );
 
+  # Zsh can use the `(N)` glob qualifier for "no match means empty list". Keep
+  # this zsh-specific dispatcher here instead of pushing shell rules into the
+  # generic managed-block helper.
   mkZshHookSourceBlock =
     { hookDir }:
     ''

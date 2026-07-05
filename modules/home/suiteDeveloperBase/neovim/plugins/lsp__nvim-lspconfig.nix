@@ -1,13 +1,18 @@
 {
   programs.nixvim = {
+    # LSP setup lives in NixVim so server packages/settings are visible in Nix
+    # review rather than hidden in Lua plugin declarations.
     plugins.lspconfig.enable = true;
 
     lsp.servers = {
+      # Give every server completion capabilities from nvim-cmp unless a server
+      # overrides them later.
       "*" = {
         config.capabilities.__raw = "require('cmp_nvim_lsp').default_capabilities()";
       };
 
       lua_ls = {
+        # Lua server is mostly for editing Neovim config itself.
         enable = true;
         config.settings.Lua = {
           diagnostics.globals = [ "vim" ];
@@ -19,6 +24,8 @@
       };
 
       gopls = {
+        # Go is a primary development language in this profile, so gopls gets
+        # richer codelenses, hints, staticcheck, and unimported completion.
         enable = true;
         config.settings.gopls = {
           gofumpt = true;

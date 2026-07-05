@@ -1,5 +1,8 @@
 {
   programs.nixvim.plugins = {
+    # Completion is intentionally conservative: LSP + snippets first, buffer as
+    # a fallback. Extra sources can be added later when there is a concrete need
+    # rather than recreating the old plugin-manager sprawl.
     cmp = {
       enable = true;
       autoEnableSources = false;
@@ -54,6 +57,8 @@
         '';
       };
 
+      # Command-line completion mirrors normal mode search/command workflows:
+      # buffer words for / and ?, path/cmdline for :.
       cmdline = {
         "/" = {
           mapping.__raw = "cmp.mapping.preset.cmdline()";
@@ -80,6 +85,8 @@
       filetype.gitcommit.sources = [ { name = "buffer"; } ];
     };
 
+    # Source plugins are enabled explicitly so future readers can see exactly
+    # where each completion source comes from.
     cmp-buffer.enable = true;
     cmp-cmdline.enable = true;
     cmp-nvim-lsp.enable = true;

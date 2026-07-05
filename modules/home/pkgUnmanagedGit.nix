@@ -7,6 +7,10 @@
 }:
 
 let
+  # This bridge exists for the same reason as the shell unmanaged modules:
+  # Git-aware tools often expect to edit ~/.gitconfig or ~/.config/git/config
+  # directly. Home Manager still generates the durable Git config, but the
+  # top-level config files stay mutable and only include a Nix-managed fragment.
   inherit (lib)
     concatStringsSep
     filter
@@ -50,6 +54,8 @@ let
         path = ~/${cfg.managedConfigPath}
   '';
 
+  # Activation names are derived from target paths because one module instance
+  # may maintain both ~/.gitconfig and ~/.config/git/config.
   activationNameForTarget = target: "unmanaged-git-${replaceStrings [ "." "/" ] [ "" "-" ] target}";
 in
 {
@@ -147,6 +153,9 @@ in
       xdg.configFile."git/config".enable = mkForce false;
     })
     {
+      # Home Manager writes xdg.configFile."git/config" for programs.git. In
+      # unmanaged mode that exact file must remain mutable, so force-disable
+      # only that link while preserving all other native Git module outputs.
       home.file.${cfg.managedConfigPath}.text = managedGitConfigText;
 
       home.activation = listToAttrs (
