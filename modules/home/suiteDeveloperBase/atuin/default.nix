@@ -7,122 +7,125 @@
 
 let
   atuinServer = rec {
-    label = "org.nix-community.home.atuin-server";
-    systemdUnit = "atuin-server.service";
-    host = "127.0.0.1";
-    port = "45654";
-    dataDir = "${config.xdg.dataHome}/atuin";
-    databaseUri = "sqlite://${dataDir}/server.db";
-    logDir = "${config.home.homeDirectory}/Library/Logs/atuin";
-    environment = {
-      ATUIN_DB_URI = databaseUri;
+    svcLaunchdDomain = "user";
+    svcLaunchdLabel = "org.nix-community.home.atuin-server";
+    svcSystemdUnitName = "atuin-server.service";
+    svcNetworkHost = "127.0.0.1";
+    svcNetworkPort = "45654";
+    svcDirectoryData = "${config.xdg.dataHome}/atuin";
+    svcDirectoryLaunchdLog = "${config.home.homeDirectory}/Library/Logs/atuin";
+    svcDatabaseUri = "sqlite://${svcDirectoryData}/server.db";
+    svcEnvironment = {
+      ATUIN_DB_URI = svcDatabaseUri;
       ATUIN_OPEN_REGISTRATION = "true";
       RUST_LOG = "info,atuin_server=debug";
     };
-    command = [
+    svcCmdStart = [
       (lib.getExe config.programs.atuin.package)
       "server"
       "start"
       "--host"
-      host
+      svcNetworkHost
       "--port"
-      port
+      svcNetworkPort
     ];
   };
 
   # These commands control the local user service. They are host-user
   # operational helpers, not reusable repo packages, so they stay local to this
   # Home Manager profile.
-  atuinServerLaunchdTools =
+  atuinServerToolsLaunchd =
     let
-      atuinServerLaunchdUp = pkgs.writeShellApplication {
+      atuinServerToolLaunchdUp = pkgs.writeShellApplication {
         name = "atuin-server-up";
 
         text = ''
-          uid="$(/usr/bin/id -u)"
-          domain="user/$uid"
-          label="${atuinServer.label}"
-          plist="$HOME/Library/LaunchAgents/$label.plist"
+          user_id="$(/usr/bin/id -u)"
+          launchd_domain="${atuinServer.svcLaunchdDomain}/$user_id"
+          launchd_label="${atuinServer.svcLaunchdLabel}"
+          launchd_plist="$HOME/Library/LaunchAgents/$launchd_label.plist"
 
-          if [ ! -r "$plist" ]; then
-            echo >&2 "Missing launchd plist: $plist"
+          if [ ! -r "$launchd_plist" ]; then
+            echo >&2 "Missing launchd plist: $launchd_plist"
             echo >&2 "Run Home Manager activation before starting the Atuin server."
             exit 1
           fi
 
-          if ! /bin/launchctl print "$domain/$label" >/dev/null 2>&1; then
-            /bin/launchctl bootstrap "$domain" "$plist"
+          if ! /bin/launchctl print "$launchd_domain/$launchd_label" >/dev/null 2>&1; then
+            /bin/launchctl bootstrap "$launchd_domain" "$launchd_plist"
           fi
 
-          /bin/launchctl kickstart -k "$domain/$label"
-          /bin/launchctl print "$domain/$label"
+          /bin/launchctl kickstart -k "$launchd_domain/$launchd_label"
+          /bin/launchctl print "$launchd_domain/$launchd_label"
         '';
       };
 
-      atuinServerLaunchdDown = pkgs.writeShellApplication {
+      atuinServerToolLaunchdDown = pkgs.writeShellApplication {
         name = "atuin-server-down";
 
         text = ''
-          uid="$(/usr/bin/id -u)"
-          domain="user/$uid"
-          label="${atuinServer.label}"
+          user_id="$(/usr/bin/id -u)"
+          launchd_domain="${atuinServer.svcLaunchdDomain}/$user_id"
+          launchd_label="${atuinServer.svcLaunchdLabel}"
 
-          if ! /bin/launchctl print "$domain/$label" >/dev/null 2>&1; then
-            echo "$label is not loaded"
+          if ! /bin/launchctl print "$launchd_domain/$launchd_label" >/dev/null 2>&1; then
+            echo "$launchd_label is not loaded"
             exit 0
           fi
 
-          /bin/launchctl bootout "$domain/$label"
+          /bin/launchctl bootout "$launchd_domain/$launchd_label"
         '';
       };
     in
     pkgs.symlinkJoin {
       name = "atuin-server-tools";
       paths = [
-        atuinServerLaunchdUp
-        atuinServerLaunchdDown
+        atuinServerToolLaunchdUp
+        atuinServerToolLaunchdDown
       ];
     };
 
-  atuinServerSystemdTools =
+  atuinServerToolsSystemd =
     let
-      atuinServerSystemdUp = pkgs.writeShellApplication {
+      atuinServerCmdSystemctl = config.systemd.user.systemctlPath;
+
+      atuinServerToolSystemdUp = pkgs.writeShellApplication {
         name = "atuin-server-up";
 
         text = ''
-          unit="${atuinServer.systemdUnit}"
+          systemd_unit="${atuinServer.svcSystemdUnitName}"
 
-          if ! systemctl --user cat "$unit" >/dev/null 2>&1; then
-            echo >&2 "Missing systemd user unit: $unit"
+          if ! ${atuinServerCmdSystemctl} --user cat "$systemd_unit" >/dev/null 2>&1; then
+            echo >&2 "Missing systemd user unit: $systemd_unit"
             echo >&2 "Run Home Manager activation before starting the Atuin server."
             exit 1
           fi
 
-          systemctl --user enable --now "$unit"
-          systemctl --user status --no-pager "$unit"
+          ${atuinServerCmdSystemctl} --user start "$systemd_unit"
+          ${atuinServerCmdSystemctl} --user status --no-pager "$systemd_unit"
         '';
       };
 
-      atuinServerSystemdDown = pkgs.writeShellApplication {
+      atuinServerToolSystemdDown = pkgs.writeShellApplication {
         name = "atuin-server-down";
 
         text = ''
-          unit="${atuinServer.systemdUnit}"
+          systemd_unit="${atuinServer.svcSystemdUnitName}"
 
-          if ! systemctl --user cat "$unit" >/dev/null 2>&1; then
-            echo "$unit is not installed"
+          if ! ${atuinServerCmdSystemctl} --user cat "$systemd_unit" >/dev/null 2>&1; then
+            echo "$systemd_unit is not installed"
             exit 0
           fi
 
-          systemctl --user disable --now "$unit"
+          ${atuinServerCmdSystemctl} --user stop "$systemd_unit"
         '';
       };
     in
     pkgs.symlinkJoin {
       name = "atuin-server-tools";
       paths = [
-        atuinServerSystemdUp
-        atuinServerSystemdDown
+        atuinServerToolSystemdUp
+        atuinServerToolSystemdDown
       ];
     };
 in
@@ -190,10 +193,10 @@ in
   # per-user service manager for each OS: launchd on macOS, systemd on Linux.
   home.packages =
     (lib.optionals pkgs.stdenv.isDarwin [
-      atuinServerLaunchdTools
+      atuinServerToolsLaunchd
     ])
-    ++ (lib.optionals pkgs.stdenv.isLinux [
-      atuinServerSystemdTools
+    ++ (lib.optionals (pkgs.stdenv.isLinux && config.systemd.user.enable) [
+      atuinServerToolsSystemd
     ]);
 
   # Create the mutable data directory the local server depends on without
@@ -206,30 +209,29 @@ in
 
   launchd.agents.atuin-server = lib.mkIf pkgs.stdenv.isDarwin {
     enable = true;
-    domain = "user";
+    domain = lib.mkDefault atuinServer.svcLaunchdDomain;
     config = {
-      ProgramArguments = atuinServer.command;
-      EnvironmentVariables = atuinServer.environment;
+      ProgramArguments = atuinServer.svcCmdStart;
+      EnvironmentVariables = atuinServer.svcEnvironment;
       KeepAlive = {
         Crashed = true;
         SuccessfulExit = false;
       };
       ProcessType = "Background";
-      StandardOutPath = "${atuinServer.logDir}/launchd-stdout.log";
-      StandardErrorPath = "${atuinServer.logDir}/launchd-stderr.log";
+      RunAtLoad = true;
+      StandardOutPath = "${atuinServer.svcDirectoryLaunchdLog}/launchd-stdout.log";
+      StandardErrorPath = "${atuinServer.svcDirectoryLaunchdLog}/launchd-stderr.log";
     };
   };
 
-  systemd.user.services.atuin-server = lib.mkIf pkgs.stdenv.isLinux {
+  systemd.user.services.atuin-server = lib.mkIf (pkgs.stdenv.isLinux && config.systemd.user.enable) {
     Unit = {
       Description = "Atuin local sync server";
-      After = [ "network-online.target" ];
-      Wants = [ "network-online.target" ];
     };
 
     Service = {
-      ExecStart = lib.escapeShellArgs atuinServer.command;
-      Environment = lib.mapAttrsToList (name: value: "${name}=${value}") atuinServer.environment;
+      ExecStart = lib.escapeShellArgs atuinServer.svcCmdStart;
+      Environment = lib.mapAttrsToList (name: value: "${name}=${value}") atuinServer.svcEnvironment;
       Restart = "on-failure";
       RestartSec = "5s";
     };
