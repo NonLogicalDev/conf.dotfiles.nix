@@ -15,7 +15,7 @@ let
     ;
 
   cfg = config.programs.unmanaged.git;
-  hmManagedBlock = inputs.self.lib.home.hmManagedBlock { inherit lib; };
+  managedBlock = inputs.self.lib.home.managedBlock { inherit lib; };
   unmanagedProgram = inputs.self.lib.home.unmanagedProgram { inherit lib; };
 in
 {
@@ -40,7 +40,7 @@ in
     {
       home.file.".config/dotfiles-nix/git/config".text = cfg.managedConfig;
 
-      home.activation.unmanaged-git-gitconfig = hmManagedBlock.mkActivation {
+      home.activation.unmanaged-git-gitconfig = managedBlock.mkActivation {
         name = "git gitconfig";
         target = ".gitconfig";
         block = ''

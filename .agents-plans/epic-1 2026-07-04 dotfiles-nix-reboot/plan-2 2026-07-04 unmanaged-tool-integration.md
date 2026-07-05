@@ -33,7 +33,7 @@ The desired middle ground is: conventional top-level files remain mutable and to
 
 - Use the namespace `programs.unmanaged.<tool>` for the migration/adoption layer.
 - Put the first low-level modules under `modules/home/programs/unmanaged/` and import that module set from `modules/home/core.nix` so the options are available but dormant until a host user enables them.
-- Put the shared Home Manager marked-block activation helper under `lib/home/hm-managed-block.nix`.
+- Put the shared Home Manager marked-block activation helper under `lib/home/managed-block.nix`; the `home` directory provides the Home Manager context, so the filename does not need an `hm-` prefix.
 - Assume third-party tools are Nix-oblivious and will mutate conventional top-level files.
 - Keep conventional top-level files mutable by default.
 - Use activation scripts to insert or update marked managed blocks inside top-level files.
@@ -45,8 +45,8 @@ The desired middle ground is: conventional top-level files remain mutable and to
 	- `force-disable`: unmanaged module wins and forces native module off.
 	- `allow`: advanced mode for tools proven safe to combine.
 - Nixpkgs standard lib does not provide a marked mutable-file block updater. Use standard pieces (`lib.escapeShellArg`, Home Manager activation DAG entries) but keep the repository-owned block replacement helper generic.
-- Keep tool-specific block bodies out of `lib/home/hm-managed-block.nix`; Git include syntax belongs in the Git module, and shell source syntax belongs in the unmanaged-program helper.
-- Allow `lib/home/hm-managed-block.nix` callers to override comment marker prefix/suffix so the same Home Manager block updater can target files with different comment syntaxes.
+- Keep tool-specific block bodies out of `lib/home/managed-block.nix`; Git include syntax belongs in the Git module, and shell source syntax belongs in the unmanaged-program helper.
+- Allow `lib/home/managed-block.nix` callers to override comment marker prefix/suffix so the same Home Manager block updater can target files with different comment syntaxes.
 - Import the unmanaged bash, git, and zsh modules explicitly from `modules/home/core.nix`; avoid a `modules/home/programs/unmanaged/default.nix` that only hides a short module list.
 - In this Blueprint flake's module graph, Home Manager submodules receive `inputs`, so leaf modules should use `inputs.self.lib.home.*` for repo-local helpers instead of deep relative imports or `_module.args` plumbing.
 
@@ -81,7 +81,7 @@ The desired middle ground is: conventional top-level files remain mutable and to
 - [x] 2026-07-04 18:09 - Started the first implementation slice: dormant bash, zsh, and git Home Manager helpers plus a reusable managed-block activation helper.
 - [x] 2026-07-04 18:17 - Implemented dormant unmanaged bash, zsh, and git modules, kept `managed-block` generic, and validated with `nix flake check` plus an enabled Home Manager eval.
 - [x] 2026-07-04 18:17 - Verified native-program policy behavior: `force-disable` forces native Git off, and default `forbid` rejects simultaneous `programs.git.enable`.
-- [x] 2026-07-04 18:19 - Renamed the block updater to `hm-managed-block`, added configurable comment markers, and removed the unnecessary unmanaged module directory `default.nix`.
+- [x] 2026-07-04 18:19 - Added configurable comment markers and removed the unnecessary unmanaged module directory `default.nix`.
 - [x] 2026-07-04 18:19 - Replaced deep relative helper imports with `inputs.self.lib.home.*` in the unmanaged submodules and revalidated with `nix flake check`.
 
 ## Unfinished Work

@@ -14,7 +14,7 @@ let
     types
     ;
 
-  hmManagedBlock = import ./hm-managed-block.nix { inherit lib; };
+  managedBlock = import ./managed-block.nix { inherit lib; };
 
   fragmentPath = tool: name: ".config/dotfiles-nix/${tool}/${name}";
   targetPath = name: ".${name}";
@@ -108,7 +108,7 @@ in
       home.activation = mapAttrs' (
         name: _:
         nameValuePair "unmanaged-${tool}-${name}" (
-          hmManagedBlock.mkActivation {
+          managedBlock.mkActivation {
             name = "${tool} ${name}";
             target = targetPath name;
             block = mkShellSourceBlock {
