@@ -1,7 +1,22 @@
 {
+  config,
+  lib,
   pkgs,
   ...
 }:
+
+let
+  cfg = config.dotfiles.suites.developerBase;
+
+  immutableBookmarkRevset =
+    if cfg.jujutsu.immutableBookmarkGlobs == [ ] then
+      "builtin_immutable_heads()"
+    else
+      "builtin_immutable_heads() | "
+      + lib.concatMapStringsSep " | " (
+        glob: "(bookmarks(glob:'${glob}'))"
+      ) cfg.jujutsu.immutableBookmarkGlobs;
+in
 
 {
   imports = [
@@ -18,8 +33,8 @@
 
     settings = {
       user = {
-        name = "Oleg Utkin";
-        email = "oleg@nonlogical.net";
+        name = cfg.jujutsu.userName;
+        email = cfg.jujutsu.userEmail;
       };
 
       ui = {
@@ -95,7 +110,7 @@
         auto-track = "all()";
 
         # Keep personal remote bookmark namespaces immutable by default.
-        "immutable_heads()" = "builtin_immutable_heads() | (bookmarks(glob:'oleg.utkin/*'))";
+        "immutable_heads()" = immutableBookmarkRevset;
       };
 
       revset-aliases = {

@@ -3,11 +3,19 @@
 {
   imports = [
     inputs.self.homeModules.core
-    ./home/atuin
-    ./home/git
-    ./home/jujutsu
-    ./home/neovim
-    ./home/shell
-    ./home/tmux
+    inputs.self.homeModules."developer-base"
   ];
+
+  dotfiles.suites.developerBase = {
+    git = {
+      userName = "Oleg Utkin";
+      userEmail = "hello@nonlogical.net";
+    };
+
+    jujutsu = {
+      userName = "Oleg Utkin";
+      userEmail = "oleg@nonlogical.net";
+      immutableBookmarkGlobs = [ "oleg.utkin/*" ];
+    };
+  };
 }

@@ -1,12 +1,17 @@
 {
+  config,
   lib,
   pkgs,
 }:
 
+let
+  cfg = config.dotfiles.suites.developerBase;
+in
+
 {
   user = {
-    name = "Oleg Utkin";
-    email = "hello@nonlogical.net";
+    name = cfg.git.userName;
+    email = cfg.git.userEmail;
   };
 
   credential."https://gist.github.com".helper = [
@@ -15,7 +20,7 @@
   ];
 
   core = {
-    hooksPath = "~/bin/git-hooks";
+    hooksPath = "${config.home.homeDirectory}/bin/git-hooks";
     pager = "cat";
   };
 

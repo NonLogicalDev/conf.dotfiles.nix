@@ -130,17 +130,20 @@ in
   };
 
   # Local server operation is exposed as explicit commands backed by a launchd
-  # agent. The Atuin client config stays declarative and compact.
-  home.packages = [
+  # agent on macOS. Linux profiles can still use the shared client settings;
+  # service ownership for Linux should live in a Linux-specific system layer.
+  home.packages = lib.optionals pkgs.stdenv.isDarwin [
     atuinServerTools
   ];
 
   # Create the mutable directories the launchd job depends on without hiding
   # that setup in a startup wrapper.
   xdg.dataFile."atuin/.keep".text = "";
-  home.file."Library/Logs/atuin/.keep".text = "";
+  home.file = lib.mkIf pkgs.stdenv.isDarwin {
+    "Library/Logs/atuin/.keep".text = "";
+  };
 
-  launchd.agents.atuin-server = {
+  launchd.agents.atuin-server = lib.mkIf pkgs.stdenv.isDarwin {
     enable = true;
     domain = "user";
     config = {

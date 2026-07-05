@@ -1,4 +1,5 @@
 {
+  config,
   lib,
   pkgs,
   ...
@@ -7,7 +8,7 @@
 let
   aliases = import ./cfg-aliases.nix;
   ignorePatterns = import ./cfg-ignore-patterns.nix;
-  settings = import ./cfg-settings.nix { inherit lib pkgs; };
+  settings = import ./cfg-settings.nix { inherit config lib pkgs; };
   stgitAliases = import ./cfg-aliases-stgit.nix;
 in
 {
