@@ -32,6 +32,8 @@ The desired middle ground is: conventional top-level files remain mutable and to
 ## Decisions
 
 - Use the namespace `programs.unmanaged.<tool>` for the migration/adoption layer.
+- Put the first low-level modules under `modules/home/programs/unmanaged/` and import that module set from `modules/home/core.nix` so the options are available but dormant until a host user enables them.
+- Put the shared marked-block activation helper under `lib/home/managed-block.nix`.
 - Assume third-party tools are Nix-oblivious and will mutate conventional top-level files.
 - Keep conventional top-level files mutable by default.
 - Use activation scripts to insert or update marked managed blocks inside top-level files.
@@ -42,14 +44,16 @@ The desired middle ground is: conventional top-level files remain mutable and to
 	- `forbid`: fail if native `programs.<tool>.enable` is also enabled.
 	- `force-disable`: unmanaged module wins and forces native module off.
 	- `allow`: advanced mode for tools proven safe to combine.
+- Nixpkgs standard lib does not provide a marked mutable-file block updater. Use standard pieces (`lib.escapeShellArg`, Home Manager activation DAG entries) but keep the repository-owned block replacement helper generic.
+- Keep tool-specific block bodies out of `lib/home/managed-block.nix`; Git include syntax belongs in the Git module, and shell source syntax belongs in the unmanaged-program helper.
 
 ## Implementation Steps
 
 1. [ ] Inventory existing top-level zsh, bash, and git files and identify third-party mutation patterns.
-2. [ ] Design a shared managed-block activation helper under `lib/home/`.
-3. [ ] Sketch `programs.unmanaged.zsh` with separate entries for `.zshenv`, `.zprofile`, and `.zshrc`.
-4. [ ] Sketch `programs.unmanaged.git` for a managed include block in `~/.gitconfig`.
-5. [ ] Define native program conflict assertions for zsh, bash, and git.
+2. [x] Design a shared managed-block activation helper under `lib/home/`.
+3. [x] Sketch `programs.unmanaged.zsh` with separate entries for `.zshenv`, `.zprofile`, and `.zshrc`.
+4. [x] Sketch `programs.unmanaged.git` for a managed include block in `~/.gitconfig`.
+5. [x] Define native program conflict assertions for zsh, bash, and git.
 6. [ ] Prototype one low-risk tool integration after the Dotter inventory is complete.
 
 ## Learning Log
@@ -71,9 +75,11 @@ The desired middle ground is: conventional top-level files remain mutable and to
 
 - [x] 2026-07-04 18:02 - Created the unmanaged tool integration design plan from the brainstorming thread.
 - [x] 2026-07-04 18:03 - Rewrote the context section to explain the coexistence problem for a future reader.
+- [x] 2026-07-04 18:09 - Started the first implementation slice: dormant bash, zsh, and git Home Manager helpers plus a reusable managed-block activation helper.
+- [x] 2026-07-04 18:17 - Implemented dormant unmanaged bash, zsh, and git modules, kept `managed-block` generic, and validated with `nix flake check` plus an enabled Home Manager eval.
+- [x] 2026-07-04 18:17 - Verified native-program policy behavior: `force-disable` forces native Git off, and default `forbid` rejects simultaneous `programs.git.enable`.
 
 ## Unfinished Work
 
-- [ ] Decide final module file layout for `programs.unmanaged.<tool>`.
-- [ ] Decide the exact managed block marker format.
-- [ ] Inventory current zsh, bash, git, and third-party mutation behavior before implementation.
+- [ ] Inventory current zsh, bash, git, and third-party mutation behavior before enabling these modules for a real user.
+- [ ] Prototype one low-risk tool integration after the inventory is complete.
