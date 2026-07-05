@@ -2,6 +2,7 @@
   config,
   inputs,
   lib,
+  pkgs,
   ...
 }:
 
@@ -13,7 +14,10 @@ let
     ;
 
   cfg = config.programs.unmanaged.zsh;
-  unmanagedProgram = inputs.self.lib.home.unmanagedProgram { inherit lib; };
+  unmanagedProgram = inputs.self.lib.home.unmanagedProgram {
+    inherit lib;
+    awk = "${pkgs.gawk}/bin/awk";
+  };
 in
 {
   options.programs.unmanaged.zsh = {

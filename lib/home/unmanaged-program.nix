@@ -1,4 +1,7 @@
-{ lib }:
+{
+  lib,
+  awk ? "awk",
+}:
 
 let
   # Pull only the library functions this file uses into local scope. This is
@@ -19,7 +22,7 @@ let
 
   # This helper is still generic Home Manager block surgery. The current
   # file adds conventions for unmanaged program modules on top of it.
-  managedBlock = import ./managed-block.nix { inherit lib; };
+  managedBlock = import ./managed-block.nix { inherit lib awk; };
 
   # Nix-managed fragments live below ~/.config so top-level files such as
   # ~/.zshrc remain ordinary mutable files for non-Nix-aware tools.
@@ -117,6 +120,12 @@ in
             default = "";
             description = "Nix-managed fragment written under ~/.config/dotfiles-nix/${tool}/.";
           };
+
+          placement = mkOption {
+            type = types.attrs;
+            default = { };
+            description = "Advanced managed-block placement settings passed to lib.home.managedBlock.";
+          };
         };
       };
       default = { };
@@ -153,7 +162,7 @@ in
       # `home.activation` entries mutate the conventional top-level files at
       # activation time, preserving everything outside the managed block.
       home.activation = mapAttrs' (
-        name: _:
+        name: file:
         nameValuePair "unmanaged-${tool}-${name}" (
           managedBlock.mkActivation {
             name = "${tool} ${name}";
@@ -161,6 +170,20 @@ in
             block = mkShellSourceBlock {
               fragmentPath = "$HOME/${fragmentPath tool name}";
             };
+            placement = {
+              # Shell startup files should see the Nix-managed fragment
+              # before installer snippets, aliases, functions, and PATH
+              # edits that may depend on Nix-provided tooling. Still keep
+              # shebangs and leading file comments first when they exist.
+              mode = "after-preamble";
+              relocateExisting = true;
+              preambleLineRegexes = [
+                "^#!"
+                "^#($|[[:space:]])"
+                "^[[:space:]]*$"
+              ];
+            }
+            // file.placement;
           }
         )
       ) enabledFiles;

@@ -1,4 +1,7 @@
-{ lib }:
+{
+  lib,
+  awk ? "awk",
+}:
 
 let
   # Every block managed by this helper gets a stable marker pair:
@@ -53,6 +56,10 @@ in
       # `after-preamble` inserts near the top, but only after leading lines
       # that match `preambleLineRegexes`. This lets a caller preserve things
       # that must stay first, such as shebangs, file headers, or doc comments.
+      #
+      # By default, an existing block is replaced where it already is. Callers
+      # can set `relocateExisting = true` when placement itself is part of the
+      # contract and activation should repair an older block location.
       placement ? { },
     }:
     let
@@ -67,6 +74,7 @@ in
         else
           throw "managed-block placement.mode must be one of ${lib.concatStringsSep ", " validPlacementModes}";
       preambleLineRegexes = placement.preambleLineRegexes or [ ];
+      relocateExisting = placement.relocateExisting or false;
 
       # `or` is Nix's "attribute with default" operator. If the caller did
       # not provide `comment.prefix`, use `#`.
@@ -113,7 +121,9 @@ in
       end=${lib.escapeShellArg end}
       block=${lib.escapeShellArg fullBlock}
       placement_mode=${lib.escapeShellArg checkedPlacementMode}
+      relocate_existing=${lib.escapeShellArg (if relocateExisting then "1" else "0")}
       preamble_line_regexes=${lib.escapeShellArg (lib.concatStringsSep "\n" preambleLineRegexes)}
+      awk_bin=${lib.escapeShellArg awk}
 
       # The unmanaged top-level file may not exist yet. Create the parent
       # directory and an empty file so later logic can treat creation and
@@ -147,6 +157,7 @@ in
       tmp="$(mktemp "$target.XXXXXX")"
       block_file="$(mktemp "$target.block.XXXXXX")"
       preamble_regex_file="$(mktemp "$target.preamble.XXXXXX")"
+      content_file="$(mktemp "$target.content.XXXXXX")"
 
       # Do not pass multiline text to awk through `-v`; BSD awk rejects
       # embedded newlines in variable assignments. Store multiline inputs in
@@ -154,10 +165,10 @@ in
       printf '%s\n' "$block" > "$block_file"
       printf '%s\n' "$preamble_line_regexes" > "$preamble_regex_file"
 
-      if [ "$begin_count" -eq 1 ]; then
+      if [ "$begin_count" -eq 1 ] && [ "$relocate_existing" != "1" ]; then
         # Replace the existing managed block. Lines outside the marker pair
-        # pass through unchanged.
-        awk -v begin="$begin" -v end="$end" -v block_file="$block_file" '
+        # pass through unchanged, including the block's current location.
+        "$awk_bin" -v begin="$begin" -v end="$end" -v block_file="$block_file" '
           function print_block(line) {
             while ((getline line < block_file) > 0) {
               print line
@@ -178,14 +189,38 @@ in
             print
           }
         ' "$target" > "$tmp" || {
-          rm -f "$tmp" "$block_file" "$preamble_regex_file"
-          exit 1
+            rm -f "$tmp" "$block_file" "$preamble_regex_file" "$content_file"
+            exit 1
         }
       else
+        if [ "$begin_count" -eq 1 ]; then
+          # Some callers care about where the block lives. For those callers,
+          # first remove the old block, then insert the new block using the
+          # configured placement mode below.
+          "$awk_bin" -v begin="$begin" -v end="$end" '
+            $0 == begin {
+              skipping = 1
+              next
+            }
+            $0 == end {
+              skipping = 0
+              next
+            }
+            !skipping {
+              print
+            }
+          ' "$target" > "$content_file" || {
+            rm -f "$tmp" "$block_file" "$preamble_regex_file" "$content_file"
+            exit 1
+          }
+        else
+          cp "$target" "$content_file"
+        fi
+
         if [ "$placement_mode" = "append" ]; then
-          # No existing managed block: append one to the end of the file,
-          # separating it from existing content with a blank line.
-          cp "$target" "$tmp"
+          # Insert the block at the end of the blockless content, separating
+          # it from existing content with a blank line.
+          cp "$content_file" "$tmp"
           if [ -s "$tmp" ]; then
             printf '\n' >> "$tmp"
           fi
@@ -195,7 +230,7 @@ in
           # caller-defined because different file formats have different
           # header rules. For a shell file, useful regexes might be `^#!`
           # for a shebang and `^#($|[[:space:]])` for leading comments.
-          awk -v block_file="$block_file" -v preamble_regex_file="$preamble_regex_file" '
+          "$awk_bin" -v block_file="$block_file" -v preamble_regex_file="$preamble_regex_file" '
             BEGIN {
               while ((getline regex < preamble_regex_file) > 0) {
                 regexes[++regex_count] = regex
@@ -236,15 +271,15 @@ in
                 print_block()
               }
             }
-          ' "$target" > "$tmp" || {
-            rm -f "$tmp" "$block_file" "$preamble_regex_file"
+          ' "$content_file" > "$tmp" || {
+            rm -f "$tmp" "$block_file" "$preamble_regex_file" "$content_file"
             exit 1
           }
         else
           # Nix evaluation should prevent this path, but keep an activation
           # guard so a broken generated script fails loudly.
           echo "Unsupported managed-block placement mode: $placement_mode" >&2
-          rm -f "$tmp" "$block_file" "$preamble_regex_file"
+          rm -f "$tmp" "$block_file" "$preamble_regex_file" "$content_file"
           exit 1
         fi
       fi
@@ -253,6 +288,6 @@ in
         cp "$tmp" "$target"
       fi
 
-      rm -f "$tmp" "$block_file" "$preamble_regex_file"
+      rm -f "$tmp" "$block_file" "$preamble_regex_file" "$content_file"
     '';
 }

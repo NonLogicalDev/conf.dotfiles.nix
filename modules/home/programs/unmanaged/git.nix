@@ -2,6 +2,7 @@
   config,
   inputs,
   lib,
+  pkgs,
   ...
 }:
 
@@ -15,8 +16,14 @@ let
     ;
 
   cfg = config.programs.unmanaged.git;
-  managedBlock = inputs.self.lib.home.managedBlock { inherit lib; };
-  unmanagedProgram = inputs.self.lib.home.unmanagedProgram { inherit lib; };
+  managedBlock = inputs.self.lib.home.managedBlock {
+    inherit lib;
+    awk = "${pkgs.gawk}/bin/awk";
+  };
+  unmanagedProgram = inputs.self.lib.home.unmanagedProgram {
+    inherit lib;
+    awk = "${pkgs.gawk}/bin/awk";
+  };
 in
 {
   options.programs.unmanaged.git = {
