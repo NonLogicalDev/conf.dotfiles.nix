@@ -1,5 +1,9 @@
 { ... }:
 
+let
+  inherit (import ./lib) jjAliasBashFile;
+in
+
 {
   # Log aliases and templates are split out because they are the most personal
   # part of the jj UI. They define how everyday graph output reads at a glance.
@@ -40,41 +44,11 @@
 
       # Show the first bookmark reachable from the current change. Useful for
       # scripts or prompts that want one branch-ish name without full log noise.
-      bm = [
-        "util"
-        "exec"
-        "--"
-        "bash"
-        "-euo"
-        "pipefail"
-        "-c"
-        ''
-          jj --ignore-working-copy log \
-            -n 1 -G \
-            -r 'bookmarks() & ::@' \
-            -T 'stringify(self.bookmarks().join("\n")).first_line() ++ "\n"'
-        ''
-        ""
-      ];
+      bm = jjAliasBashFile { file = ./lib/aliases/bm.bash; };
 
       # Show all bookmarks reachable from the current change. This is the
       # explicit version of `bm` when multiple labels may matter.
-      bma = [
-        "util"
-        "exec"
-        "--"
-        "bash"
-        "-euo"
-        "pipefail"
-        "-c"
-        ''
-          jj --ignore-working-copy log \
-            -n 1 -G \
-            -r 'bookmarks() & ::@' \
-            -T 'stringify(self.bookmarks().join("\n")) ++ "\n"'
-        ''
-        ""
-      ];
+      bma = jjAliasBashFile { file = ./lib/aliases/bma.bash; };
 
       # Bookmark overview for bookmarks owned by this identity. Includes root so
       # the graph has a stable anchor even when bookmarks are disconnected.
