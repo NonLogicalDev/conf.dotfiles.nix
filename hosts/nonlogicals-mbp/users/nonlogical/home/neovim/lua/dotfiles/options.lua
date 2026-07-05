@@ -1,0 +1,91 @@
+vim.opt.number = true
+vim.opt.relativenumber = false
+vim.opt.cursorline = true
+vim.opt.signcolumn = "yes"
+
+vim.opt.tabstop = 2
+vim.opt.shiftwidth = 2
+vim.opt.softtabstop = 2
+vim.opt.expandtab = true
+vim.opt.smartindent = true
+vim.opt.autoindent = true
+vim.opt.copyindent = true
+vim.opt.shiftround = true
+vim.opt.smarttab = true
+
+vim.opt.ignorecase = true
+vim.opt.smartcase = true
+vim.opt.incsearch = true
+vim.opt.hlsearch = true
+vim.opt.gdefault = true
+
+vim.opt.wrap = false
+vim.opt.scrolloff = 5
+vim.opt.sidescrolloff = 8
+vim.opt.laststatus = 2
+vim.opt.showcmd = true
+vim.opt.showmode = true
+vim.opt.showmatch = true
+vim.opt.ruler = true
+vim.opt.title = true
+
+vim.opt.hidden = true
+vim.opt.backup = false
+vim.opt.writebackup = false
+vim.opt.swapfile = false
+vim.opt.autowrite = true
+
+-- Keep system clipboard opt-in. Explicit "+ registers and OSC52 mappings still
+-- work, but ordinary yanks stay inside Neovim.
+vim.opt.clipboard = ""
+
+if vim.fn.has("clipboard") == 0 then
+  local function copy(lines, _)
+    require("osc52").copy(table.concat(lines, "\n"))
+  end
+
+  local function paste()
+    return { vim.fn.split(vim.fn.getreg(""), "\n"), vim.fn.getregtype("") }
+  end
+
+  vim.g.clipboard = {
+    name = "osc52",
+    copy = { ["+"] = copy, ["*"] = copy },
+    paste = { ["+"] = paste, ["*"] = paste },
+  }
+end
+
+vim.opt.mouse = "a"
+vim.opt.splitright = true
+vim.opt.splitbelow = true
+vim.opt.iskeyword:append("-")
+vim.opt.history = 10000
+vim.opt.undolevels = 10000
+vim.opt.backspace = "indent,eol,start"
+vim.opt.visualbell = true
+
+vim.opt.wildmenu = true
+vim.opt.wildmode = "list:longest"
+vim.opt.completeopt = "menu,menuone,longest"
+vim.opt.switchbuf = "useopen,usetab"
+
+vim.opt.inccommand = "nosplit"
+vim.cmd("syntax sync minlines=256")
+
+vim.g.polyglot_disabled = { "python-indent", "indent/python.vim", "autoindent" }
+vim.g.pymode_indent = 0
+vim.g.python_highlight_all = 1
+vim.g.markdown_folding = 1
+vim.g.javaScript_fold = 2
+vim.g.netrw_keepdir = 0
+vim.g.netrw_banner = 0
+
+if vim.fn.executable("rg") == 1 then
+  vim.opt.grepprg = "rg --vimgrep --no-heading"
+  vim.opt.grepformat = "%f:%l:%c:%m,%f:%l:%m"
+end
+
+vim.diagnostic.config({
+  virtual_lines = true,
+  virtual_text = true,
+})
