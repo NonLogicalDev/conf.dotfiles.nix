@@ -48,7 +48,8 @@ The desired middle ground is: conventional top-level files remain mutable and to
 - Keep tool-specific block bodies out of `lib/home/managed-block.nix`; Git include syntax belongs in the Git module, and shell source syntax belongs in the unmanaged-program helper.
 - Allow `lib/home/managed-block.nix` callers to override comment marker prefix/suffix so the same Home Manager block updater can target files with different comment syntaxes.
 - Allow `lib/home/managed-block.nix` callers to choose where a new block is inserted. Default to appending, but support an `after-preamble` mode with caller-provided line regexes so shebangs, file headers, and doc comments can remain before the managed block.
-- Allow callers to opt into relocating an existing managed block. Shell startup files use this because the managed source block must run before most hand-written or installer-written rc content; Git keeps the default replace-in-place behavior.
+- Allow callers to opt into relocating an existing managed block. Shell startup files use this because the managed source block must run before most hand-written or installer-written rc content. Git also uses relocation so the include remains near the top of the mutable config file.
+- Place the Git managed include near the top of the chosen mutable config file. Git applies config in file order, so this lets Nix provide defaults while later hand-written or tool-written top-level settings can override them.
 - Import the unmanaged bash, git, and zsh modules explicitly from `modules/home/core.nix`; avoid a `modules/home/programs/unmanaged/default.nix` that only hides a short module list.
 - In this Blueprint flake's module graph, Home Manager submodules receive `inputs`, so leaf modules should use `inputs.self.lib.home.*` for repo-local helpers instead of deep relative imports or `_module.args` plumbing.
 - Git pressure tests on Apple Git 2.50.1 show that normal Git config loading reads `~/.config/git/config` and `~/.gitconfig`, but `git config --global` has narrower behavior: it does not expand includes unless `--includes` is passed, and its write target depends on which global config file exists. Keep the Git include target configurable.
@@ -73,6 +74,7 @@ The desired middle ground is: conventional top-level files remain mutable and to
 	- `.zshrc`: interactive shell setup.
 - For git, a managed block in `~/.gitconfig` or `~/.config/git/config` can include the Nix-managed fragment while preserving arbitrary top-level changes.
 - For bash and zsh startup files, append placement is too late for the migration use case. The managed source block should be inserted after only the leading preamble, so Nix-provided PATH and environment setup can affect the rest of `.bashrc`, `.bash_profile`, `.zshenv`, `.zprofile`, and `.zshrc`.
+- For Git config, a near-top include is safer than an appended include because it makes the managed fragment behave like defaults. Existing top-level settings that appear later in `~/.gitconfig` or `~/.config/git/config` continue to win.
 - Home Manager activation scripts should not rely on the user's ambient shell `PATH` for text-processing tools. The managed-block helper accepts an explicit `awk` executable path, and Home Manager modules pass `${pkgs.gawk}/bin/awk`.
 - The migration ladder is:
 	1. Top-level file mutable, Nix injects a marked include/source block.
@@ -93,6 +95,7 @@ The desired middle ground is: conventional top-level files remain mutable and to
 - [x] 2026-07-04 18:47 - Pressure-tested Git global config loading and added `programs.unmanaged.git.includeTarget` so the managed include block can live in either `~/.gitconfig` or `~/.config/git/config`.
 - [x] 2026-07-04 19:01 - Changed unmanaged bash and zsh startup files to place the managed source block before ordinary rc content and to relocate older appended blocks during activation.
 - [x] 2026-07-04 19:06 - Fixed activation to use an explicit Nix-provided `awk`, then verified the disposable test profile activates idempotently with one managed block per top-level file.
+- [x] 2026-07-04 19:07 - Changed unmanaged Git to insert and relocate the managed include near the top of the mutable Git config so later top-level settings remain local overrides.
 
 ## Unfinished Work
 

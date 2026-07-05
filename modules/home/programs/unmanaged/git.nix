@@ -70,6 +70,18 @@ in
           [include]
               path = ~/.config/dotfiles-nix/git/config
         '';
+        placement = {
+          # Git applies config in file order, and later entries override
+          # earlier ones. Put the managed include near the top so ordinary
+          # hand-written or tool-written config in ~/.gitconfig can still
+          # override the Nix-managed defaults below it.
+          mode = "after-preamble";
+          relocateExisting = true;
+          preambleLineRegexes = [
+            "^#"
+            "^[[:space:]]*$"
+          ];
+        };
       };
     }
   ]);
