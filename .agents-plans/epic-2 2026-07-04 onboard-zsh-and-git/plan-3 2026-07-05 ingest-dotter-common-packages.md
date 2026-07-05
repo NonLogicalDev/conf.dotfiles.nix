@@ -52,13 +52,15 @@ This repository already uses the host-user convention `hosts/nonlogicals-mbp/use
 - Migrate Atuin first. Its Dotter config is mostly generated comments plus a small set of real preferences, so `programs.atuin.settings` can convey the actual behavior without copying the full TOML file.
 - Let Atuin own shell history search on Ctrl-R. Keep `programs.fzf` enabled, but set `programs.fzf.historyWidget.command = ""` so fzf does not compete with Atuin's zsh integration.
 - Defer Atuin fish integration until the fish slice. The old fish Dotter file only ran `atuin init fish`, but this repo has not yet decided whether Home Manager should own fish as a secondary shell.
+- Keep the Atuin slice focused on client behavior. Local service/dev helpers such as `Justfile` and `compose.yml` are not migrated into Home Manager unless a later system/service slice intentionally owns the Atuin server.
+- Expose Atuin local server control through the Atuin Home Manager profile, not `packages/`. `atuin-server-up` and `atuin-server-down` carry the useful behavior of the old Compose/Justfile setup while keeping operational defaults overridable through environment variables. The top-level `packages/` tree is reserved for reusable tools.
 
 ## Implementation Steps
 
 1. [x] Inventory live Dotter-managed files and current home targets for the in-scope topics: `bin`, `git/bin`, `tmux`, `vifm`, `jj`, `atuin`, and `fish`.
 2. [x] Classify each topic as Home Manager-native config, package derivation, small companion file, or deferred/no-longer-needed.
 3. [x] Migrate one low-risk app profile at a time under `hosts/nonlogicals-mbp/users/nonlogical/home/<program>/`.
-4. [ ] Convert selected helper scripts into Blueprint packages only after their runtime dependencies and current usefulness are understood.
+4. [ ] Convert selected reusable helper scripts into Blueprint packages only after their runtime dependencies and current usefulness are understood.
 5. [ ] Wire accepted app profiles through `hosts/nonlogicals-mbp/users/nonlogical/home-configuration.nix` without adding broad common package lists.
 6. [x] Build the Home Manager activation package after each meaningful slice and run `nix flake check` before considering the plan complete.
 7. [ ] Update this plan's learning log with each app-specific ownership decision.
@@ -72,14 +74,18 @@ This repository already uses the host-user convention `hosts/nonlogicals-mbp/use
 - `tmux` is not the safest first slice because Home Manager writes XDG `~/.config/tmux/tmux.conf`, while the live Dotter setup also owns top-level `~/.tmux.conf`. That migration needs an explicit precedence/cleanup decision.
 - `jj` has a native Home Manager module, but the current Dotter `conf.d` contains long custom command aliases and templates. It should be migrated deliberately as a Jujutsu config slice, not as the first low-risk app.
 - Atuin's durable client settings are compact: local sync server URL, session-scoped up-key filter mode, return-query escape behavior, `enter_accept = false`, stats grouping, `sudo` prefix stripping, and sync-v2 records. Home Manager renders these cleanly into generated TOML.
-- The Atuin local server `Justfile` and `compose.yml` are not client settings. They stay as small companion files under `home/atuin/` and are installed with `xdg.configFile`.
+- The Atuin local server `Justfile` and `compose.yml` are not client settings. They are excluded from this Home Manager slice; the essential client behavior is the local `sync_address`.
 - Enabling Atuin zsh integration while fzf zsh integration is enabled requires disabling fzf's Ctrl-R history widget. Home Manager documents `programs.fzf.historyWidget.command = ""` as the supported way to yield Ctrl-R to Atuin.
+- The Atuin server helper does not belong under `packages/` because it is host-user operational glue, not a reusable program. It lives inline in `home/atuin/default.nix`, produces real `atuin-server-up` and `atuin-server-down` commands, and keeps mutable operational values configurable with `ATUIN_SERVER_*` environment variables.
 
 ## Work Log
 
 - [x] 2026-07-05 00:39 - Created plan 3 after inventorying `/Users/nonlogical/.config/dotter/common` and defining the non-editor, non-GUI-terminal scope.
 - [x] 2026-07-05 00:53 - Inventoried live targets for the in-scope Dotter topics, chose Atuin as the first low-risk app migration, added `home/atuin`, disabled fzf's Ctrl-R widget in favor of Atuin, and verified the Home Manager activation build.
 - [x] 2026-07-05 00:54 - Verified the Atuin slice with `nix flake check`.
+- [x] 2026-07-05 00:58 - Trimmed Atuin migration to client behavior only by dropping the local `Justfile` and `compose.yml` helper files from Home Manager ownership.
+- [x] 2026-07-05 01:00 - Added `atuin-server-up` and `atuin-server-down` as host-user Home Manager helper commands instead of reusable Blueprint packages.
+- [x] 2026-07-05 01:08 - Verified generated `atuin-server-up` and `atuin-server-down` with `bash -n`, confirmed only Atuin client TOML is installed under `.config/atuin`, and reran `nix flake check`.
 
 ## Unfinished Work
 
