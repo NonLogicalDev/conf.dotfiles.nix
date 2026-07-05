@@ -10,7 +10,7 @@
     scmIdentity = {
       name = "Oleg Utkin";
       email = "hello@nonlogical.net";
-      username = "oleg.utkin";
+      slug = "oleg.utkin";
     };
   };
 }

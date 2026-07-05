@@ -6,7 +6,7 @@
 
 let
   cfg = config.dotfiles.suites.developerBase;
-  personalBookmarkGlob = "${cfg.scmIdentity.username}/*";
+  personalBookmarkGlob = "${cfg.scmIdentity.slug}/*";
   immutableBookmarkRevset = "builtin_immutable_heads() | (bookmarks(glob:'${personalBookmarkGlob}'))";
 in
 

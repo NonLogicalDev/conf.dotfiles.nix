@@ -29,11 +29,11 @@
         '';
       };
 
-      username = lib.mkOption {
+      slug = lib.mkOption {
         type = lib.types.str;
         description = ''
-          Short source-control username used for personal namespaces, such as
-          Jujutsu bookmark globs derived as `<username>/*`.
+          Short source-control identity slug used for personal namespaces, such
+          as Jujutsu bookmark globs derived as `<slug>/*`.
         '';
       };
     };
