@@ -1,3 +1,5 @@
+#!/usr/bin/env zsh
+
 function __microprompt_pwd() {
   local pwd_parts=(${(s:/:)PWD})
   local part_count=${#pwd_parts[@]}
@@ -75,14 +77,6 @@ function __microprompt_prompt_host() {
   fi
 }
 
-function __microprompt_prompt_preexec() {
-  __MICROPROMPT_LAST_CMD_START_TIME=$EPOCHSECONDS
-}
-
-function __microprompt_prompt_precmd() {
-  __MICROPROMPT_LAST_CMD_EXIT_CODE=$?
-}
-
 function __microprompt_prompt_newline() {
   echo $'\n%{\r%}'
 }
@@ -111,14 +105,28 @@ function __microprompt_prompt_func() {
   fi
 }
 
-function microprompt_init() {
+function prompt_microprompt_preexec() {
+  __MICROPROMPT_LAST_CMD_START_TIME=$EPOCHSECONDS
+}
+
+function prompt_microprompt_precmd() {
+  __MICROPROMPT_LAST_CMD_EXIT_CODE=$?
+}
+
+function prompt_microprompt_setup() {
+  case "$TERM_PROGRAM" in
+    WarpTerminal|vscode|cursor)
+      return 0
+      ;;
+  esac
+
   zmodload zsh/datetime || :
   autoload -Uz +X add-zsh-hook 2>/dev/null
 
-  setopt PROMPT_SUBST
+  prompt_opts=(subst percent)
 
-  add-zsh-hook preexec __microprompt_prompt_preexec
-  add-zsh-hook precmd __microprompt_prompt_precmd
+  add-zsh-hook preexec prompt_microprompt_preexec
+  add-zsh-hook precmd prompt_microprompt_precmd
 
   PROMPT='$(__microprompt_prompt_func)$ '
 
@@ -134,12 +142,4 @@ function microprompt_init() {
   microprompt_split
 }
 
-case "$TERM_PROGRAM" in
-  WarpTerminal|vscode|cursor)
-    __MICROPROMPT_DISABLE=1
-    ;;
-esac
-
-if (( ${__MICROPROMPT_DISABLE:-0} != 1 )); then
-  microprompt_init
-fi
+prompt_microprompt_setup "$@"

@@ -1,3 +1,7 @@
+# ZLE widgets and key bindings. Home Manager owns the base keymap through
+# `programs.zsh.defaultKeymap`; this file contains the terminal-specific
+# bindings and custom widgets that Home Manager does not model directly.
+
 zmodload zsh/terminfo || :
 autoload -Uz edit-command-line && zle -N edit-command-line
 
@@ -19,7 +23,7 @@ fi
 
 typeset -g -A key
 key=(
-  Tab          '	'
+  Tab          $'\t'
   ShiftTab     '^[[Z'
   Backspace    '^?'
   Delete       '^[[3~'
@@ -56,6 +60,18 @@ bindkey -M viins '^Y' yank
 bindkey -M viins '^U' kill-whole-line
 bindkey -M viins '^H' backward-delete-char
 bindkey -M viins '^?' backward-delete-char
+
+function expand-aliases {
+  unset 'functions[_expand-aliases]'
+  functions[_expand-aliases]=$BUFFER
+  if (($+functions[_expand-aliases])); then
+    BUFFER=${functions[_expand-aliases]#$'\t'}
+    CURSOR=$#BUFFER
+  fi
+}
+
+zle -N expand-aliases
+bindkey '^E' expand-aliases
 
 if (( $+widgets[history-substring-search-up] )); then
   [[ -n "${key[Up]}" ]] && bindkey -- "${key[Up]}" history-substring-search-up

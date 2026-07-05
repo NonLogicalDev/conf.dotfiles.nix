@@ -1,0 +1,7 @@
+#!/usr/bin/env zsh
+
+function ip-wan {
+  dig @resolver1.opendns.com ANY myip.opendns.com +short
+}
+
+ip-wan "$@"

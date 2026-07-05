@@ -1,0 +1,36 @@
+#!/usr/bin/env zsh
+
+function rm() {
+  local is_recursive=0
+  local is_force=0
+  local has_home=0
+  local has_root=0
+
+  for arg in "$@"; do
+    [[ $arg == "-f" ]] && is_force=1
+    [[ $arg == "-r" ]] && is_recursive=1
+    [[ $arg == "-rf" || $arg == "-fr" ]] && is_force=1 && is_recursive=1
+    [[ $arg == "$HOME" ]] && has_home=1
+    [[ $arg == "/" ]] && has_root=1
+  done
+
+  if [[ $is_force -eq 1 && $is_recursive -eq 1 ]]; then
+    if [[ $has_home -eq 1 || $has_root -eq 1 ]]; then
+      echo "ERROR: refusing dangerous rm $*" >&2
+      return 128
+    fi
+
+    echo "Just checking in..." >&2
+    echo "You are running 'rm $*'" >&2
+    echo "Are you totally sure? (y/n)" >&2
+    read "REPLY?"
+    if [[ $REPLY != "y" && $REPLY != "yes" ]]; then
+      echo "ERROR: aborting..." >&2
+      return 128
+    fi
+  fi
+
+  command rm -v "$@"
+}
+
+rm "$@"

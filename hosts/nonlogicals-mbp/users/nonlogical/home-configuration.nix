@@ -4,6 +4,6 @@
   imports = [
     inputs.self.homeModules.core
     ./home/git
-    ./home/zsh
+    ./home/shell
   ];
 }

@@ -1,0 +1,8 @@
+#!/usr/bin/env zsh
+
+function refresh {
+  tput clear || return 2
+  zsh -ic "$@"
+}
+
+refresh "$@"

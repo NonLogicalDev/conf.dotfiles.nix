@@ -1,3 +1,6 @@
+# iTerm2 tab coloring is terminal UI policy, not a general shell integration.
+# It colors tabs while risky-looking commands are running and resets the color
+# before the next prompt.
 if [[ -n "$ITERM_SESSION_ID" ]]; then
   function tab-color() {
     echo -ne "\033]6;1;bg;red;brightness;$1\a"

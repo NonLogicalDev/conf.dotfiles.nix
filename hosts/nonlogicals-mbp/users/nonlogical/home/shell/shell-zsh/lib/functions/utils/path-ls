@@ -1,5 +1,9 @@
-function path_list {
+#!/usr/bin/env zsh
+
+function path-ls {
   for p in "${path[@]}"; do
     printf "%s\n" "$p"
   done
 }
+
+path-ls "$@"
