@@ -1,21 +1,13 @@
 {
   config,
-  lib,
   pkgs,
   ...
 }:
 
 let
   cfg = config.dotfiles.suites.developerBase;
-
-  immutableBookmarkRevset =
-    if cfg.jujutsu.immutableBookmarkGlobs == [ ] then
-      "builtin_immutable_heads()"
-    else
-      "builtin_immutable_heads() | "
-      + lib.concatMapStringsSep " | " (
-        glob: "(bookmarks(glob:'${glob}'))"
-      ) cfg.jujutsu.immutableBookmarkGlobs;
+  personalBookmarkGlob = "${cfg.scmIdentity.username}/*";
+  immutableBookmarkRevset = "builtin_immutable_heads() | (bookmarks(glob:'${personalBookmarkGlob}'))";
 in
 
 {
@@ -33,8 +25,8 @@ in
 
     settings = {
       user = {
-        name = cfg.jujutsu.userName;
-        email = cfg.jujutsu.userEmail;
+        name = cfg.scmIdentity.name;
+        email = cfg.scmIdentity.email;
       };
 
       ui = {

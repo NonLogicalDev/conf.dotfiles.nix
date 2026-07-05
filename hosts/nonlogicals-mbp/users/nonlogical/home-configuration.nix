@@ -7,15 +7,10 @@
   ];
 
   dotfiles.suites.developerBase = {
-    git = {
-      userName = "Oleg Utkin";
-      userEmail = "hello@nonlogical.net";
-    };
-
-    jujutsu = {
-      userName = "Oleg Utkin";
-      userEmail = "oleg@nonlogical.net";
-      immutableBookmarkGlobs = [ "oleg.utkin/*" ];
+    scmIdentity = {
+      name = "Oleg Utkin";
+      email = "hello@nonlogical.net";
+      username = "oleg.utkin";
     };
   };
 }

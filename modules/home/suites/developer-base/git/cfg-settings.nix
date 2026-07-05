@@ -10,8 +10,8 @@ in
 
 {
   user = {
-    name = cfg.git.userName;
-    email = cfg.git.userEmail;
+    name = cfg.scmIdentity.name;
+    email = cfg.scmIdentity.email;
   };
 
   credential."https://gist.github.com".helper = [

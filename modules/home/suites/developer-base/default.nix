@@ -1,12 +1,7 @@
 {
-  config,
   lib,
   ...
 }:
-
-let
-  cfg = config.dotfiles.suites.developerBase;
-in
 
 {
   imports = [
@@ -19,50 +14,26 @@ in
   ];
 
   options.dotfiles.suites.developerBase = {
-    git = {
-      userName = lib.mkOption {
+    scmIdentity = {
+      name = lib.mkOption {
         type = lib.types.str;
         description = ''
-          Human name written to Git's `user.name` for this Home Manager user.
+          Human name written to source-control tools such as Git and Jujutsu.
         '';
       };
 
-      userEmail = lib.mkOption {
+      email = lib.mkOption {
         type = lib.types.str;
         description = ''
-          Email address written to Git's `user.email` for this Home Manager user.
-        '';
-      };
-    };
-
-    jujutsu = {
-      userName = lib.mkOption {
-        type = lib.types.str;
-        default = cfg.git.userName;
-        defaultText = lib.literalExpression "config.dotfiles.suites.developerBase.git.userName";
-        description = ''
-          Human name written to Jujutsu's `user.name`. Defaults to the Git
-          identity name, but can differ when jj should use a separate identity.
+          Email address written to source-control tools such as Git and Jujutsu.
         '';
       };
 
-      userEmail = lib.mkOption {
+      username = lib.mkOption {
         type = lib.types.str;
-        default = cfg.git.userEmail;
-        defaultText = lib.literalExpression "config.dotfiles.suites.developerBase.git.userEmail";
         description = ''
-          Email address written to Jujutsu's `user.email`. Defaults to the Git
-          identity email, but can differ when jj should use a separate identity.
-        '';
-      };
-
-      immutableBookmarkGlobs = lib.mkOption {
-        type = lib.types.listOf lib.types.str;
-        default = [ ];
-        example = [ "alice/*" ];
-        description = ''
-          Personal bookmark namespaces that Jujutsu should treat as immutable in
-          addition to jj's built-in immutable heads.
+          Short source-control username used for personal namespaces, such as
+          Jujutsu bookmark globs derived as `<username>/*`.
         '';
       };
     };
