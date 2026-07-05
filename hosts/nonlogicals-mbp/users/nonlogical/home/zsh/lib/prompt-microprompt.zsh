@@ -1,19 +1,9 @@
-#=======================================
-# Super minimal prompt
-#
-#   [exit_code] [duration] [pwd]
-#   $ $CURSOR
-#
-#=======================================
-
 function __microprompt_pwd() {
-  # produce compressed pwd string ~/[f/I/g]/last/2dirs
   local pwd_parts=(${(s:/:)PWD})
   local part_count=${#pwd_parts[@]}
   local compressed_pwd=""
   local home_prefix=""
 
-  # Handle home directory
   if [[ "$PWD" == "$HOME" ]]; then
     echo "~"
     return
@@ -23,15 +13,12 @@ function __microprompt_pwd() {
     part_count=${#pwd_parts[@]}
   fi
 
-  # Handle root directory
   if [[ "$PWD" == "/" ]]; then
     echo "/"
     return
   fi
 
-  # Build compressed path
   if [[ $part_count -le 2 ]]; then
-    # For shallow paths, show full path
     if [[ -n "$home_prefix" ]]; then
       echo "$home_prefix/${(j:/:)pwd_parts}"
     else
@@ -40,7 +27,6 @@ function __microprompt_pwd() {
     return
   fi
 
-  # Compress middle parts
   for (( i=0; i<part_count-2; i++ )); do
     if [[ "${pwd_parts[i+1]}" == .* ]]; then
       compressed_pwd+="${pwd_parts[i+1]:0:2}/"
@@ -49,7 +35,6 @@ function __microprompt_pwd() {
     fi
   done
 
-  # Add last two parts
   compressed_pwd+="${pwd_parts[part_count-1]}/${pwd_parts[part_count]}"
 
   if [[ -n "$home_prefix" ]]; then
@@ -60,18 +45,13 @@ function __microprompt_pwd() {
 }
 
 function __microprompt_prompt_cmd_duration() {
-  if [[ -z "$__MICROPROMPT_LAST_CMD_START_TIME" ]]; then
-    return
-  fi
+  [[ -z "$__MICROPROMPT_LAST_CMD_START_TIME" ]] && return
 
   local duration=$(( EPOCHSECONDS - __MICROPROMPT_LAST_CMD_START_TIME ))
-  if [[ $duration -lt 1 ]]; then
-    return
-  fi
+  [[ $duration -lt 1 ]] && return
 
-  local minutes=$((duration / 60))
-  local seconds=$((duration % 60))
-
+  local minutes=$(( duration / 60 ))
+  local seconds=$(( duration % 60 ))
   if [[ $minutes -gt 0 ]]; then
     echo "${minutes}m${seconds}s"
   else
@@ -80,10 +60,7 @@ function __microprompt_prompt_cmd_duration() {
 }
 
 function __microprompt_prompt_cmd_exit_code() {
-  if [[ $__MICROPROMPT_LAST_CMD_EXIT_CODE -eq 0 ]]; then
-    return
-  fi
-
+  [[ $__MICROPROMPT_LAST_CMD_EXIT_CODE -eq 0 ]] && return
   echo "$__MICROPROMPT_LAST_CMD_EXIT_CODE"
 }
 
@@ -92,8 +69,7 @@ function __microprompt_prompt_date() {
 }
 
 function __microprompt_prompt_host() {
-  # Detect if we're in a remote session (SSH)
-  if [[ -n "$SSH_CONNECTION" ]] || [[ -n "$SSH_CLIENT" ]] || [[ -n "$SSH_TTY" ]]; then
+  if [[ -n "$SSH_CONNECTION" || -n "$SSH_CLIENT" || -n "$SSH_TTY" ]]; then
     local hostname="${HOST:-$(hostname -s 2>/dev/null || hostname)}"
     echo "%F{cyan}($hostname)%f"
   fi
@@ -112,35 +88,21 @@ function __microprompt_prompt_newline() {
 }
 
 function __microprompt_prompt_func() {
-  if (( __MICROPROMPT_ENABLE_ERICHMENTS != 1 )); then
-    return
-  fi
+  (( __MICROPROMPT_ENABLE_ENRICHMENTS != 1 )) && return
 
   local prompt_parts=()
-
-  # Add date
   prompt_parts+=("$(__microprompt_prompt_date)")
 
-  # Add host if remote
   local host_part="$(__microprompt_prompt_host)"
-  if [[ -n "$host_part" ]]; then
-    prompt_parts+=("$host_part")
-  fi
+  [[ -n "$host_part" ]] && prompt_parts+=("$host_part")
 
-  # Add exit code if non-zero
   local exit_code_part="$(__microprompt_prompt_cmd_exit_code)"
-  if [[ -n "$exit_code_part" ]]; then
-    prompt_parts+=("%F{red}[$exit_code_part]%f")
-  fi
+  [[ -n "$exit_code_part" ]] && prompt_parts+=("%F{red}[$exit_code_part]%f")
 
-  # Add current directory
   prompt_parts+=("$(__microprompt_pwd)")
 
-  # Add duration if command took time
   local duration_part="$(__microprompt_prompt_cmd_duration)"
-  if [[ -n "$duration_part" ]]; then
-    prompt_parts+=("%F{yellow}($duration_part)%f")
-  fi
+  [[ -n "$duration_part" ]] && prompt_parts+=("%F{yellow}($duration_part)%f")
 
   if (( __MICROPROMPT_ENABLE_NEWLINE == 1 )); then
     echo "> ${(j: :)prompt_parts}$(__microprompt_prompt_newline)"
@@ -150,30 +112,34 @@ function __microprompt_prompt_func() {
 }
 
 function microprompt_init() {
-  if typeset -f __plug.set &>/dev/null; then
-    __plug.set microprompt "v:?.?.?"
-  fi
-
   zmodload zsh/datetime || :
-  autoload -Uz +X promptinit 2>/dev/null
   autoload -Uz +X add-zsh-hook 2>/dev/null
 
   setopt PROMPT_SUBST
 
-  # Set up hooks
   add-zsh-hook preexec __microprompt_prompt_preexec
   add-zsh-hook precmd __microprompt_prompt_precmd
 
   PROMPT='$(__microprompt_prompt_func)$ '
 
   function microprompt_split() {
-    __MICROPROMPT_ENABLE_NEWLINE=$((1 - __MICROPROMPT_ENABLE_NEWLINE))
+    __MICROPROMPT_ENABLE_NEWLINE=$(( 1 - __MICROPROMPT_ENABLE_NEWLINE ))
   }
 
-  __MICROPROMPT_ENABLE_ERICHMENTS=1
+  __MICROPROMPT_ENABLE_ENRICHMENTS=1
   function microprompt_hide() {
-    __MICROPROMPT_ENABLE_ERICHMENTS=$((1 - __MICROPROMPT_ENABLE_ERICHMENTS))
+    __MICROPROMPT_ENABLE_ENRICHMENTS=$(( 1 - __MICROPROMPT_ENABLE_ENRICHMENTS ))
   }
 
   microprompt_split
 }
+
+case "$TERM_PROGRAM" in
+  WarpTerminal|vscode|cursor)
+    __MICROPROMPT_DISABLE=1
+    ;;
+esac
+
+if (( ${__MICROPROMPT_DISABLE:-0} != 1 )); then
+  microprompt_init
+fi

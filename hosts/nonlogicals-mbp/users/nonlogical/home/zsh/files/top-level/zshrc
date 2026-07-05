@@ -1,6 +1,0 @@
-[[ -s $HOME/.config/zsh/hooks/_loader.zsh ]] && HOOK_DIR="$HOME/.config/zsh/hooks/zshrc.d" source "$HOME/.config/zsh/hooks/_loader.zsh";
-[[ -s "$HOME/.config/zsh/hooks/zshrc" ]] && source "$HOME/.config/zsh/hooks/zshrc"
-# Added by LM Studio CLI (lms)
-export PATH="$PATH:/Users/nonlogical/.lmstudio/bin"
-# End of LM Studio CLI section
-
