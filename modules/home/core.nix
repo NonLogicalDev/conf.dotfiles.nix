@@ -7,6 +7,7 @@
   # `suiteDeveloperBase`, not here.
   imports = [
     ./pkgUnmanagedBash.nix
+    ./pkgUnmanagedFish.nix
     ./pkgUnmanagedGit.nix
     ./pkgUnmanagedZsh.nix
   ];
