@@ -1,0 +1,45 @@
+set dotenv-load := true
+
+# Compose is the stable interface for this harness. Docker is the default
+# because it is the most common local setup, but `COMPOSE="podman compose"` and
+# `CONTAINER_RUNTIME=podman` keep the task surface usable with another OCI
+# runtime.
+compose := env_var_or_default("COMPOSE", "docker compose")
+container_runtime := env_var_or_default("CONTAINER_RUNTIME", "docker")
+harness_dir := justfile_directory()
+justfile_path := justfile()
+service := "devsuite"
+container := "dotfiles-nix-devsuite"
+image := "dotfiles-nix-devsuite:latest"
+user := env_var_or_default("DOTFILES_NIX_USER", "devsuite")
+
+# List available developer-suite integration commands.
+default:
+    @just --justfile "{{justfile_path}}" --list
+
+# Build the container image used by the integration harness.
+build:
+    cd "{{harness_dir}}" && {{compose}} build {{service}}
+
+# Start a fresh long-running container with suiteDeveloperBase activated.
+up:
+    cd "{{harness_dir}}" && {{compose}} up --detach --build --force-recreate {{service}}
+    @echo "Started {{container}}."
+    @echo "Follow activation logs with: just -f integration/developer-suite/Justfile logs"
+    @echo "Exec into the profile with: just -f integration/developer-suite/Justfile exec"
+
+# Follow activation and container logs through Compose.
+logs:
+    cd "{{harness_dir}}" && {{compose}} logs --follow {{service}}
+
+# Open an interactive login shell as the test user.
+exec:
+    {{container_runtime}} exec -it {{container}} su - {{user}}
+
+# Stop and remove the integration container.
+down:
+    cd "{{harness_dir}}" && {{compose}} down --remove-orphans
+
+# Remove the built image as well as the container.
+clean: down
+    -{{container_runtime}} image rm {{image}}

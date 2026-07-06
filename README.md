@@ -29,7 +29,9 @@ The flake is Blueprint-native and is intended to grow into three system-profile 
 
 ## Integration Harnesses
 
-- `integration/developer-suite/docker/` contains a Docker harness that activates
-  `suiteDeveloperBase` for a clean Linux test user named `devsuite`. Run
-  `integration/developer-suite/docker/bin/run`, then inspect it with
-  `integration/developer-suite/docker/bin/exec`.
+- `integration/developer-suite/` contains a container integration harness that
+  activates `suiteDeveloperBase` for a clean Linux test user named `devsuite`.
+  It uses `Containerfile`, `compose.yml`, and `Justfile` so Docker is only the
+  default runtime, not part of the file layout. Run
+  `just -f integration/developer-suite/Justfile up`, then inspect it with
+  `just -f integration/developer-suite/Justfile exec`.
