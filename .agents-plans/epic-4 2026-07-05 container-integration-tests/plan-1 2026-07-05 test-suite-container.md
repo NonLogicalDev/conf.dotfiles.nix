@@ -28,8 +28,9 @@ Unit-style Nix evaluation and `nix flake check` catch many structural problems, 
 - Use OCI/Compose naming: `Containerfile`, `compose.yml`, and `Justfile`. Docker remains the default command in the Just recipes, but the layout should not imply that Docker is the only possible runtime.
 - Use the official Nix image as the base so the container can evaluate and activate the flake in an environment close to a generic Linux Nix install.
 - Define the integration profile as a normal Blueprint standalone Home Manager profile at `hosts/integration-test-suite/users/testuser/home-configuration.nix`.
+- Keep the container's Linux substrate as static test infrastructure under `integration/test-suite/configuration.nix`. That NixOS file owns the disposable Unix user and Nix daemon plumbing; it is not a repo host profile and should not test reusable machine configuration.
 - Keep shell orchestration in `entrypoint.sh`. The entrypoint runs the normal Home Manager CLI against `testuser@integration-test-suite`; do not generate a runtime flake or hand-built activation-package expression.
-- Run activation as an unprivileged test user. Root may prepare Nix and the user account, but the resulting shell should be inspectable as the test user.
+- Run activation as the unprivileged `testuser` through the Nix daemon started inside the container. Do not make `testuser` own `/nix` just to avoid daemon setup.
 - Keep this as an inspection harness. It should be able to build and activate the profile, but it is not a full test assertion framework yet.
 
 ## Implementation Steps
@@ -37,7 +38,7 @@ Unit-style Nix evaluation and `nix flake check` catch many structural problems, 
 1. [x] Create this self-contained integration-test plan.
 2. [x] Add Containerfile, Compose file, Justfile, entrypoint, and integration host Home Manager profile.
 3. [x] Document build/run/exec commands in the harness README and root README.
-4. [ ] Build the container image and start the container enough to verify activation.
+4. [x] Build the container image and start the container enough to verify activation.
 5. [x] Run final Nix validation and checkpoint the harness.
 
 ## Learning Log
@@ -45,7 +46,10 @@ Unit-style Nix evaluation and `nix flake check` catch many structural problems, 
 - Blueprint already supports host-only standalone Home Manager profiles. A directory at `hosts/<host>/users/<user>/home-configuration.nix` without a system config is exposed as `<user>@<host>` under `legacyPackages.<system>.homeConfigurations`.
 - The integration harness uses that existing Blueprint path: `testuser@integration-test-suite`.
 - The entrypoint uses the Home Manager CLI from the repo's locked `home-manager` input through `nix run <home-manager-input>#home-manager`, then runs `home-manager --flake "$repo#testuser@integration-test-suite" switch`.
+- `integration/test-suite/configuration.nix` is intentionally local to the harness. It exists so the container can get normal NixOS-generated account files, shell paths, and Nix daemon behavior without adding a fake reusable host config to Blueprint.
 - The container intentionally sets `systemd.user.startServices = "suggest"` because a normal inspection container is not running systemd as pid 1. User units can be inspected, but the Atuin server is not started by activation.
+- The Containerfile uses `nixos-rebuild build` followed by the generated activation script. `nixos-rebuild switch` expects an already booted NixOS system, while this harness starts from the lean `nixos/nix` base image.
+- Docker exec sessions inherit image-level environment variables, not environment changes made inside the entrypoint process. The image therefore sets `PATH` and `NIX_PROFILES` for the fixed `testuser` profile so shells can find `~/.nix-profile/bin` after Home Manager activation.
 - The command surface now lives in `integration/test-suite/Justfile`, backed by `compose.yml`. The old nested `docker/bin` helper scripts were removed so there is one obvious task entrypoint.
 - A live smoke test still depends on a local container runtime daemon. In this session the Docker-compatible socket `/var/run/docker.sock` does not exist, so `just -f integration/test-suite/Justfile up` cannot start the container yet.
 
@@ -67,7 +71,9 @@ Unit-style Nix evaluation and `nix flake check` catch many structural problems, 
 - [x] 2026-07-06 06:52Z - Renamed the harness/profile to `integration/test-suite`, `hosts/integration-test-suite`, and `testuser@integration-test-suite`.
 - [x] 2026-07-06 06:58Z - Verified `testuser@integration-test-suite` through Blueprint's `legacyPackages.x86_64-linux.homeConfigurations`, verified the Home Manager CLI `--flake path:$repo#testuser@integration-test-suite build --no-out-link` path, ran `docker compose config`, `just --dry-run up`, `git diff --check`, and `nix flake check`.
 - [ ] 2026-07-06 06:58Z - Live `just -f integration/test-suite/Justfile up` is still blocked because `/var/run/docker.sock` does not exist in this session.
+- [x] 2026-07-06 07:43Z - Replaced manual container account setup with a static `integration/test-suite/configuration.nix` and a Containerfile `nixos-rebuild build` plus activation step; the runtime entrypoint now starts `nix-daemon` and activates only the standalone Home Manager profile.
+- [x] 2026-07-06 00:41 - Built and started the test-suite container, verified Home Manager activation for `testuser@integration-test-suite`, and added image-level Nix profile environment so interactive exec shells can find Home Manager packages.
 
 ## Unfinished Work
 
-- [ ] Run `just -f integration/test-suite/Justfile up` once a container runtime is running and confirm the container reaches the long-lived inspection state.
+N/A

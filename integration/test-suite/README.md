@@ -21,6 +21,17 @@ The synthetic profile uses this test identity:
 - email: `testuser@example.test`
 - slug: `testuser`
 
+The container's Linux substrate is defined by
+`integration/test-suite/configuration.nix`. That file is intentionally static
+test infrastructure: it creates the Unix user, shell, and Nix daemon plumbing
+needed to run Home Manager as `testuser`. The dotfiles behavior under test still
+comes from the repo flake profile above.
+
+The image also sets the baseline Nix profile environment for `testuser`
+(`~/.nix-profile`, `/run/current-system/sw`, and the default Nix profile). That
+mirrors what a normal Nix login environment would provide before Home Manager's
+own `hm-session-vars.sh` adds this repo's declared session paths.
+
 ## Run
 
 From the repository root:
@@ -53,13 +64,11 @@ For another Compose-compatible runtime, override both command surfaces:
 COMPOSE="podman compose" CONTAINER_RUNTIME=podman just -f integration/test-suite/Justfile up
 ```
 
-To activate a different standalone Home Manager profile from this flake, set
-`DOTFILES_NIX_HOME_PROFILE` to the profile name and keep `DOTFILES_NIX_USER` /
-`DOTFILES_NIX_HOME` aligned with that profile:
+To activate a different standalone Home Manager profile from this flake for the
+same fixed container user, set `DOTFILES_NIX_HOME_PROFILE` to the profile name:
 
 ```bash
-DOTFILES_NIX_HOME_PROFILE=some-user@some-host DOTFILES_NIX_USER=some-user DOTFILES_NIX_HOME=/home/some-user \
-  just -f integration/test-suite/Justfile up
+DOTFILES_NIX_HOME_PROFILE=testuser@some-host just -f integration/test-suite/Justfile up
 ```
 
 ## Inspect

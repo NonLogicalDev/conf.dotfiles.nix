@@ -2,8 +2,8 @@ set dotenv-load := true
 
 # Compose is the stable interface for this harness. Docker is the default
 # because it is the most common local setup, but `COMPOSE="podman compose"` and
-# `CONTAINER_RUNTIME=podman` keep the task surface usable with another OCI
-# runtime.
+# `CONTAINER_RUNTIME=podman` keep the command surface usable with another OCI
+# runtime that accepts Docker-compatible commands.
 compose := env_var_or_default("COMPOSE", "docker compose")
 container_runtime := env_var_or_default("CONTAINER_RUNTIME", "docker")
 harness_dir := justfile_directory()
@@ -11,19 +11,20 @@ justfile_path := justfile()
 service := "testsuite"
 container := "dotfiles-nix-test-suite"
 image := "dotfiles-nix-test-suite:latest"
-user := env_var_or_default("DOTFILES_NIX_USER", "testuser")
+user := "testuser"
 
 # List available test-suite integration commands.
 default:
     @just --justfile "{{justfile_path}}" --list
 
-# Build the container image used by the integration harness.
+# Build the container image used by the integration harness. The Containerfile
+# runs a small static NixOS configuration to prepare the Linux substrate.
 build:
     cd "{{harness_dir}}" && {{compose}} build {{service}}
 
 # Start a fresh long-running container with the integration test profile activated.
-up:
-    cd "{{harness_dir}}" && {{compose}} up --detach --build --force-recreate {{service}}
+up: build
+    cd "{{harness_dir}}" && {{compose}} up --detach --force-recreate {{service}}
     @echo "Started {{container}}."
     @echo "Follow activation logs with: just -f integration/test-suite/Justfile logs"
     @echo "Exec into the profile with: just -f integration/test-suite/Justfile exec"
@@ -34,7 +35,7 @@ logs:
 
 # Open an interactive login shell as the test user.
 exec:
-    {{container_runtime}} exec -it {{container}} su - {{user}}
+    {{container_runtime}} exec --interactive --tty --user {{user}} --workdir /home/{{user}} {{container}} /run/current-system/sw/bin/zsh -l
 
 # Stop and remove the integration container.
 down:

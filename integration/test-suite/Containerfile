@@ -2,26 +2,26 @@ FROM nixos/nix:latest
 
 SHELL ["/bin/sh", "-eu", "-c"]
 
-# The container is an integration harness, not a production image. Disable the
-# Nix build sandbox because Docker-on-mac and rootless Docker setups commonly do
-# not provide the kernel features the Nix sandbox expects.
-RUN mkdir -p /etc/nix \
-  && { \
-    echo "experimental-features = nix-command flakes"; \
-    echo "accept-flake-config = true"; \
-    echo "sandbox = false"; \
-  } >> /etc/nix/nix.conf
+COPY configuration.nix /etc/nixos/configuration.nix
 
-# Keep only host-setup tools in the image. The actual developer profile is
-# installed by Home Manager from this repo's flake during container startup.
-RUN nix profile install \
-  nixpkgs#bashInteractive \
-  nixpkgs#cacert \
-  nixpkgs#coreutils \
-  nixpkgs#git \
-  nixpkgs#shadow
+# Build and activate a tiny static NixOS container substrate. `switch` assumes
+# it is running on an existing NixOS machine, while this image starts from the
+# lean nixos/nix base. Building the system and running its activation script
+# gives us NixOS-owned users, shell paths, and Nix daemon tooling without
+# hand-editing account databases.
+RUN nix --extra-experimental-features "nix-command flakes" run nixpkgs#nixos-rebuild -- \
+    build \
+    -I nixos-config=/etc/nixos/configuration.nix && \
+  mkdir -p /run && \
+  ./result/activate && \
+  ln -sfn "$(readlink -f ./result)" /run/current-system
 
-ENV PATH="/root/.nix-profile/bin:/nix/var/nix/profiles/default/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
+# Docker exec sessions inherit the image environment rather than the entrypoint
+# process environment. Model the baseline profile paths that a normal Nix login
+# environment would provide so interactive shells can find Home Manager
+# packages after the profile is activated.
+ENV PATH="/home/testuser/.nix-profile/bin:/run/current-system/sw/bin:/nix/var/nix/profiles/default/bin:/bin"
+ENV NIX_PROFILES="/run/current-system/sw /nix/var/nix/profiles/default /home/testuser/.nix-profile"
 
 COPY entrypoint.sh /usr/local/bin/dotfiles-nix-test-suite-entrypoint
 RUN chmod 0755 /usr/local/bin/dotfiles-nix-test-suite-entrypoint
