@@ -23,8 +23,8 @@ RUN nix profile install \
 
 ENV PATH="/root/.nix-profile/bin:/nix/var/nix/profiles/default/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
 
-COPY entrypoint.sh /usr/local/bin/dotfiles-nix-devsuite-entrypoint
-RUN chmod 0755 /usr/local/bin/dotfiles-nix-devsuite-entrypoint
+COPY entrypoint.sh /usr/local/bin/dotfiles-nix-test-suite-entrypoint
+RUN chmod 0755 /usr/local/bin/dotfiles-nix-test-suite-entrypoint
 
-ENTRYPOINT ["/usr/local/bin/dotfiles-nix-devsuite-entrypoint"]
+ENTRYPOINT ["/usr/local/bin/dotfiles-nix-test-suite-entrypoint"]
 CMD ["sleep", "infinity"]

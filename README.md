@@ -29,9 +29,12 @@ The flake is Blueprint-native and is intended to grow into three system-profile 
 
 ## Integration Harnesses
 
-- `integration/developer-suite/` contains a container integration harness that
-  activates `suiteDeveloperBase` for a clean Linux test user named `devsuite`.
+- `integration/test-suite/` contains a container integration harness that
+  activates `suiteDeveloperBase` for a clean Linux test user named `testuser`.
   It uses `Containerfile`, `compose.yml`, and `Justfile` so Docker is only the
-  default runtime, not part of the file layout. Run
-  `just -f integration/developer-suite/Justfile up`, then inspect it with
-  `just -f integration/developer-suite/Justfile exec`.
+  default runtime, not part of the file layout. It runs the normal Home Manager
+  CLI against the Blueprint standalone profile
+  `testuser@integration-test-suite`, defined at
+  `hosts/integration-test-suite/users/testuser/home-configuration.nix`. Run
+  `just -f integration/test-suite/Justfile up`, then inspect it with `just -f
+  integration/test-suite/Justfile exec`.

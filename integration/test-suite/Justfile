@@ -8,12 +8,12 @@ compose := env_var_or_default("COMPOSE", "docker compose")
 container_runtime := env_var_or_default("CONTAINER_RUNTIME", "docker")
 harness_dir := justfile_directory()
 justfile_path := justfile()
-service := "devsuite"
-container := "dotfiles-nix-devsuite"
-image := "dotfiles-nix-devsuite:latest"
-user := env_var_or_default("DOTFILES_NIX_USER", "devsuite")
+service := "testsuite"
+container := "dotfiles-nix-test-suite"
+image := "dotfiles-nix-test-suite:latest"
+user := env_var_or_default("DOTFILES_NIX_USER", "testuser")
 
-# List available developer-suite integration commands.
+# List available test-suite integration commands.
 default:
     @just --justfile "{{justfile_path}}" --list
 
@@ -21,12 +21,12 @@ default:
 build:
     cd "{{harness_dir}}" && {{compose}} build {{service}}
 
-# Start a fresh long-running container with suiteDeveloperBase activated.
+# Start a fresh long-running container with the integration test profile activated.
 up:
     cd "{{harness_dir}}" && {{compose}} up --detach --build --force-recreate {{service}}
     @echo "Started {{container}}."
-    @echo "Follow activation logs with: just -f integration/developer-suite/Justfile logs"
-    @echo "Exec into the profile with: just -f integration/developer-suite/Justfile exec"
+    @echo "Follow activation logs with: just -f integration/test-suite/Justfile logs"
+    @echo "Exec into the profile with: just -f integration/test-suite/Justfile exec"
 
 # Follow activation and container logs through Compose.
 logs:

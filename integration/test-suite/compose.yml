@@ -1,0 +1,15 @@
+services:
+  testsuite:
+    build:
+      context: .
+      dockerfile: Containerfile
+    image: dotfiles-nix-test-suite:latest
+    container_name: dotfiles-nix-test-suite
+    hostname: dotfiles-nix-test-suite
+    environment:
+      DOTFILES_NIX_USER: ${DOTFILES_NIX_USER:-testuser}
+      DOTFILES_NIX_HOME: ${DOTFILES_NIX_HOME:-/home/testuser}
+      DOTFILES_NIX_HOME_FLAKE: ${DOTFILES_NIX_HOME_FLAKE:-path:/workspace/dotfiles-nix}
+      DOTFILES_NIX_HOME_PROFILE: ${DOTFILES_NIX_HOME_PROFILE:-testuser@integration-test-suite}
+    volumes:
+      - ../..:/workspace/dotfiles-nix:ro

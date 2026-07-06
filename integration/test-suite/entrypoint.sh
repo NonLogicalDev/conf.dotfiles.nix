@@ -8,16 +8,14 @@
 #                                used by compose.yml.
 #   DOTFILES_NIX_USER/HOME       Synthetic Linux account that receives the Home
 #                                Manager profile.
-#   DOTFILES_NIX_NAME/EMAIL/SLUG Test source-control identity passed into the
-#                                reusable developer suite module.
-#   DOTFILES_NIX_ACTIVATION_LINK Where `nix build --out-link` writes the Home
-#                                Manager activation package symlink.
-#   DOTFILES_NIX_ACTIVATION_EXPR Optional path to the Nix expression that
-#                                builds the activation package.
+#   DOTFILES_NIX_HOME_FLAKE      Flake URI containing the Home Manager profile.
+#                                Defaults to `path:$DOTFILES_NIX_REPO`.
+#   DOTFILES_NIX_HOME_PROFILE    Home Manager flake profile to activate.
+#                                Defaults to the integration host profile.
 #
 # Outputs:
 #   - A normal user account inside the container.
-#   - A Home Manager profile activated into that user's home directory.
+#   - A Home Manager profile activated through the repo flake.
 #   - A short README in the test home with inspection commands.
 #
 # This script deliberately does not define a fake host. The point of the
@@ -28,13 +26,10 @@ set -euo pipefail
 # Keep all knobs environment-overridable so the same image can be reused for
 # quick experiments without editing the container definition.
 repo_dir="${DOTFILES_NIX_REPO:-/workspace/dotfiles-nix}"
-test_user="${DOTFILES_NIX_USER:-devsuite}"
+test_user="${DOTFILES_NIX_USER:-testuser}"
 test_home="${DOTFILES_NIX_HOME:-/home/$test_user}"
-test_name="${DOTFILES_NIX_NAME:-Developer Suite}"
-test_email="${DOTFILES_NIX_EMAIL:-devsuite@example.test}"
-test_slug="${DOTFILES_NIX_SLUG:-devsuite}"
-activation_link="${DOTFILES_NIX_ACTIVATION_LINK:-/tmp/dotfiles-nix-devsuite-home}"
-activation_expr="${DOTFILES_NIX_ACTIVATION_EXPR:-$repo_dir/integration/developer-suite/home-manager-activation.nix}"
+home_flake="${DOTFILES_NIX_HOME_FLAKE:-path:$repo_dir}"
+home_profile="${DOTFILES_NIX_HOME_PROFILE:-testuser@integration-test-suite}"
 
 # The repo must be a mounted checkout, not copied into the image. That keeps
 # rebuilds cheap and makes the container test the exact working tree the user is
@@ -50,17 +45,24 @@ if [ ! -f "$repo_dir/flake.nix" ]; then
   exit 1
 fi
 
-if [ ! -f "$activation_expr" ]; then
-  echo >&2 "Missing activation expression: $activation_expr"
-  exit 1
-fi
-
 # Nix flakes often ask Git for metadata while evaluating. The checkout is owned
 # by the host user but the container starts as root, so mark the mount safe for
 # Git before `builtins.getFlake` has a chance to inspect it.
 git config --global --add safe.directory "$repo_dir"
 
 bash_path="$(command -v bash)"
+
+# Use the Home Manager CLI from this repo's locked flake input. That keeps the
+# harness on the same Home Manager revision as the modules it is testing while
+# still using the normal Home Manager command surface.
+home_manager_flake="$(
+  DOTFILES_NIX_REPO="$repo_dir" nix eval --impure --raw --expr '
+    let
+      flake = builtins.getFlake (builtins.getEnv "DOTFILES_NIX_REPO");
+    in
+    flake.inputs.home-manager.outPath
+  '
+)"
 
 # Create the inspection user only at container start. The image stays generic;
 # the test account belongs to this run and can be changed through env vars.
@@ -69,9 +71,22 @@ if ! id -u "$test_user" >/dev/null 2>&1; then
 fi
 
 # Home Manager activation expects the home directory to be owned by the target
-# user, even though root prepared the container and will run the Nix build.
+# user before the user-owned switch runs.
 mkdir -p "$test_home"
 chown "$test_user:$test_user" "$test_home"
+
+# The Home Manager config may call `builtins.getFlake` on the mounted checkout
+# while running as the test user. Git refuses to inspect a checkout owned by a
+# different uid unless it is explicitly marked safe for that user too.
+printf -v git_safe_command \
+  "HOME=%q USER=%q LOGNAME=%q git config --global --add safe.directory %q" \
+  "$test_home" \
+  "$test_user" \
+  "$test_user" \
+  "$repo_dir"
+su "$test_user" \
+  --shell "$bash_path" \
+  --command "$git_safe_command"
 
 # Home Manager's standalone activation updates the per-user profile symlink.
 # In this minimal container those per-user Nix directories do not exist until we
@@ -83,42 +98,41 @@ chown -R "$test_user:$test_user" \
   "/nix/var/nix/profiles/per-user/$test_user" \
   "/nix/var/nix/gcroots/per-user/$test_user"
 
-# Pass shell values into the Nix expression through the environment. That keeps
-# the expression static enough to read while avoiding fragile shell string
-# interpolation inside Nix source.
-export DOTFILES_NIX_REPO="$repo_dir"
-export DOTFILES_NIX_USER="$test_user"
-export DOTFILES_NIX_HOME="$test_home"
-export DOTFILES_NIX_NAME="$test_name"
-export DOTFILES_NIX_EMAIL="$test_email"
-export DOTFILES_NIX_SLUG="$test_slug"
+# The official Nix image is effectively a single-user root Nix installation.
+# To run the real Home Manager CLI as the test user, hand this disposable
+# container's Nix store and metadata to that user. This would be inappropriate
+# on a real machine, but it makes the integration harness exercise the same
+# user-owned switch path a normal standalone Home Manager install uses.
+chown -R "$test_user:$test_user" /nix
 
-echo "Building Home Manager activation package for $test_user at $test_home..."
-nix build \
-  --impure \
-  --out-link "$activation_link" \
-  --file "$activation_expr"
+# Keep the command construction in Bash instead of nested quote soup. `printf
+# %q` preserves spaces and other shell-sensitive characters in paths.
+printf -v switch_command \
+  "cd %q && HOME=%q USER=%q LOGNAME=%q nix run %q#home-manager -- --impure --no-write-lock-file --flake %q#%q switch -b hm-backup" \
+  "$repo_dir" \
+  "$test_home" \
+  "$test_user" \
+  "$test_user" \
+  "$home_manager_flake" \
+  "$home_flake" \
+  "$home_profile"
 
-# The build happens as root so it can write the out-link and use the container
-# Nix installation. Activation happens as the target user so Home Manager writes
-# the profile, files, and XDG state with the same ownership a real login would
-# have.
-echo "Activating Home Manager profile as $test_user..."
+echo "Switching Home Manager profile for $test_user at $test_home..."
+echo "Selected profile: $home_profile"
 su "$test_user" \
   --shell "$bash_path" \
-  --command "HOME='$test_home' USER='$test_user' LOGNAME='$test_user' '$activation_link/activate'"
+  --command "$switch_command"
 
 # Leave a breadcrumb inside the container because an interactive shell can be
 # opened minutes or hours after activation logs have scrolled away.
-cat > "$test_home/README-dotfiles-nix-devsuite.txt" <<EOF
-dotfiles-nix developer suite container
+cat > "$test_home/README-dotfiles-nix-test-suite.txt" <<EOF
+dotfiles-nix test suite container
 
 Profile activated for:
   user:  $test_user
   home:  $test_home
-  name:  $test_name
-  email: $test_email
-  slug:  $test_slug
+  flake: $home_flake
+  profile: $home_profile
 
 Useful inspection commands:
   zsh -l
@@ -129,12 +143,12 @@ Useful inspection commands:
   find ~/.config/zsh/rc -maxdepth 3 -type f -print
   find ~/.config/bash/rc -maxdepth 3 -type f -print
 EOF
-chown "$test_user:$test_user" "$test_home/README-dotfiles-nix-devsuite.txt"
+chown "$test_user:$test_user" "$test_home/README-dotfiles-nix-test-suite.txt"
 
 echo
-echo "Developer suite profile is active."
+echo "Test suite profile is active."
 echo "Exec into it with:"
-echo "  just -f integration/developer-suite/Justfile exec"
+echo "  just -f integration/test-suite/Justfile exec"
 echo
 
 exec "$@"
