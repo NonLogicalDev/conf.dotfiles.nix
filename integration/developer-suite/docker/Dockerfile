@@ -1,0 +1,30 @@
+FROM nixos/nix:latest
+
+SHELL ["/bin/sh", "-eu", "-c"]
+
+# The container is an integration harness, not a production image. Disable the
+# Nix build sandbox because Docker-on-mac and rootless Docker setups commonly do
+# not provide the kernel features the Nix sandbox expects.
+RUN mkdir -p /etc/nix \
+  && { \
+    echo "experimental-features = nix-command flakes"; \
+    echo "accept-flake-config = true"; \
+    echo "sandbox = false"; \
+  } >> /etc/nix/nix.conf
+
+# Keep only host-setup tools in the image. The actual developer profile is
+# installed by Home Manager from this repo's flake during container startup.
+RUN nix profile install \
+  nixpkgs#bashInteractive \
+  nixpkgs#cacert \
+  nixpkgs#coreutils \
+  nixpkgs#git \
+  nixpkgs#shadow
+
+ENV PATH="/root/.nix-profile/bin:/nix/var/nix/profiles/default/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
+
+COPY entrypoint.sh /usr/local/bin/dotfiles-nix-devsuite-entrypoint
+RUN chmod 0755 /usr/local/bin/dotfiles-nix-devsuite-entrypoint
+
+ENTRYPOINT ["/usr/local/bin/dotfiles-nix-devsuite-entrypoint"]
+CMD ["sleep", "infinity"]

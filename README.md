@@ -26,3 +26,10 @@ The flake is Blueprint-native and is intended to grow into three system-profile 
 - `hosts/<host>/users/<username>/home/<program>.nix` contains per-app user config when one file is enough.
 - `hosts/<host>/users/<username>/home/<program>/default.nix` contains per-app user config when the app needs sibling files.
 - `lib/` contains Nix-native helper functions and data that do not produce artifacts by themselves.
+
+## Integration Harnesses
+
+- `integration/developer-suite/docker/` contains a Docker harness that activates
+  `suiteDeveloperBase` for a clean Linux test user named `devsuite`. Run
+  `integration/developer-suite/docker/bin/run`, then inspect it with
+  `integration/developer-suite/docker/bin/exec`.

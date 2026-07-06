@@ -1,0 +1,30 @@
+#!/usr/bin/env bash
+#
+# Start a disposable container with the developer suite activated for a normal
+# test user. Re-running replaces the previous container with the same name.
+
+set -euo pipefail
+
+script_dir="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
+repo_dir="$(cd -- "$script_dir/../../../.." && pwd)"
+image_name="${DOTFILES_NIX_DEVSUITE_IMAGE:-dotfiles-nix-devsuite:latest}"
+container_name="${DOTFILES_NIX_DEVSUITE_CONTAINER:-dotfiles-nix-devsuite}"
+
+"$script_dir/build-image"
+
+if docker container inspect "$container_name" >/dev/null 2>&1; then
+  docker rm --force "$container_name" >/dev/null
+fi
+
+docker run \
+  --detach \
+  --name "$container_name" \
+  --hostname "$container_name" \
+  --volume "$repo_dir:/workspace/dotfiles-nix:ro" \
+  "$image_name"
+
+echo "Started $container_name."
+echo "Watch activation logs with:"
+echo "  docker logs -f $container_name"
+echo "Exec into the activated profile with:"
+echo "  $script_dir/exec"
