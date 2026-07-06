@@ -21,16 +21,16 @@ The synthetic profile uses this test identity:
 - email: `testuser@example.test`
 - slug: `testuser`
 
-The container's Linux substrate is defined by
-`integration/test-suite/configuration.nix`. That file is intentionally static
-test infrastructure: it creates the Unix user, shell, and Nix daemon plumbing
-needed to run Home Manager as `testuser`. The dotfiles behavior under test still
-comes from the repo flake profile above.
+The container is based on the official `nixos/nix` image. That image is a
+minimal Nix runtime, not a NixOS machine, so this harness does not run
+`nixos-rebuild` or define a NixOS system profile. The Containerfile only adds
+the fixed Unix account that Docker and Home Manager need, then the entrypoint
+starts `nix-daemon` and runs the normal Home Manager CLI as `testuser`.
 
 The image also sets the baseline Nix profile environment for `testuser`
-(`~/.nix-profile`, `/run/current-system/sw`, and the default Nix profile). That
-mirrors what a normal Nix login environment would provide before Home Manager's
-own `hm-session-vars.sh` adds this repo's declared session paths.
+(`~/.nix-profile` and the default Nix profile). That mirrors what a normal Nix
+login environment would provide before Home Manager's own `hm-session-vars.sh`
+adds this repo's declared session paths.
 
 ## Run
 
@@ -77,7 +77,7 @@ Inside the container:
 
 ```bash
 zsh -l
-git config --global --list --show-origin
+git config --global --includes --list --show-origin
 jj config list --include-defaults
 ls -la ~/.config
 find ~/.config/zsh/rc -maxdepth 3 -type f -print

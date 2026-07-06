@@ -2,26 +2,28 @@ FROM nixos/nix:latest
 
 SHELL ["/bin/sh", "-eu", "-c"]
 
-COPY configuration.nix /etc/nixos/configuration.nix
+# The official Nix image is not a NixOS image. It is a minimal Nix runtime, so
+# keep setup at container scope: install the tiny tools needed by the entrypoint
+# and add a disposable Unix account for Home Manager to target.
+RUN nix --extra-experimental-features "nix-command flakes" profile add \
+    nixpkgs#util-linux
 
-# Build and activate a tiny static NixOS container substrate. `switch` assumes
-# it is running on an existing NixOS machine, while this image starts from the
-# lean nixos/nix base. Building the system and running its activation script
-# gives us NixOS-owned users, shell paths, and Nix daemon tooling without
-# hand-editing account databases.
-RUN nix --extra-experimental-features "nix-command flakes" run nixpkgs#nixos-rebuild -- \
-    build \
-    -I nixos-config=/etc/nixos/configuration.nix && \
-  mkdir -p /run && \
-  ./result/activate && \
-  ln -sfn "$(readlink -f ./result)" /run/current-system
+# The base image keeps passwd/group as immutable Nix store files. Materialize
+# writable container-local copies, append one inspection user, and create its
+# home. No NixOS activation is involved here; this is just Docker image setup.
+RUN cp -L /etc/passwd /tmp/passwd && \
+  cp -L /etc/group /tmp/group && \
+  cp --remove-destination /tmp/passwd /etc/passwd && \
+  cp --remove-destination /tmp/group /etc/group && \
+  printf 'testuser:x:1000:1000:Test User:/home/testuser:/bin/sh\n' >> /etc/passwd && \
+  printf 'testuser:x:1000:\n' >> /etc/group && \
+  install -d -m 0755 -o 1000 -g 1000 /home/testuser
 
-# Docker exec sessions inherit the image environment rather than the entrypoint
-# process environment. Model the baseline profile paths that a normal Nix login
-# environment would provide so interactive shells can find Home Manager
-# packages after the profile is activated.
-ENV PATH="/home/testuser/.nix-profile/bin:/run/current-system/sw/bin:/nix/var/nix/profiles/default/bin:/bin"
-ENV NIX_PROFILES="/run/current-system/sw /nix/var/nix/profiles/default /home/testuser/.nix-profile"
+# Docker exec sessions inherit the image environment. Include the future Home
+# Manager profile path so interactive exec shells resolve profile-installed
+# tools once activation has completed.
+ENV PATH="/home/testuser/.nix-profile/bin:/nix/var/nix/profiles/default/bin:/bin"
+ENV NIX_PROFILES="/nix/var/nix/profiles/default /home/testuser/.nix-profile"
 
 COPY entrypoint.sh /usr/local/bin/dotfiles-nix-test-suite-entrypoint
 RUN chmod 0755 /usr/local/bin/dotfiles-nix-test-suite-entrypoint

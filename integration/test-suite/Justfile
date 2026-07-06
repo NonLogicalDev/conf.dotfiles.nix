@@ -17,8 +17,7 @@ user := "testuser"
 default:
     @just --justfile "{{justfile_path}}" --list
 
-# Build the container image used by the integration harness. The Containerfile
-# runs a small static NixOS configuration to prepare the Linux substrate.
+# Build the container image used by the integration harness.
 build:
     cd "{{harness_dir}}" && {{compose}} build {{service}}
 
@@ -35,7 +34,7 @@ logs:
 
 # Open an interactive login shell as the test user.
 exec:
-    {{container_runtime}} exec --interactive --tty --user {{user}} --workdir /home/{{user}} {{container}} /run/current-system/sw/bin/zsh -l
+    {{container_runtime}} exec --interactive --tty --user {{user}} --workdir /home/{{user}} {{container}} /home/{{user}}/.nix-profile/bin/zsh -l
 
 # Stop and remove the integration container.
 down:
