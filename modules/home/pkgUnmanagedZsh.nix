@@ -191,7 +191,11 @@ let
             managedBlock.mkActivation {
               name = "zsh ${name}";
               target = targetPath name;
-              block = ''. "$HOME/${dispatcherPath name}"'';
+              block = ''
+                if [ -r "$HOME/${dispatcherPath name}" ]; then
+                  . "$HOME/${dispatcherPath name}"
+                fi
+              '';
               placement = managedPlacement file;
             }
           )
