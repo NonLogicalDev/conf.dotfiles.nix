@@ -16,9 +16,19 @@
     ./neovim
     ./shell
     ./tmux
+    ./zellij
   ];
 
   options.dotfiles.suites.developerBase = {
+    shell.fzfTab.enableNativeModule = lib.mkOption {
+      type = lib.types.bool;
+      default = true;
+      description = ''
+        Whether fzf-tab may load its optional compiled Zsh module. Disable
+        this for hosts whose system Zsh cannot load the Nix-built module.
+      '';
+    };
+
     scmIdentity = {
       # Git and Jujutsu share this identity surface so future profiles only
       # need to answer one question for normal source-control authorship. If a

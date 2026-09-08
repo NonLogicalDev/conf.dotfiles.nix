@@ -6,6 +6,7 @@
 #   $1 - Optional bookmark prefix. Prompts with a default when omitted.
 #   $2 - Optional target change id or revset. Opens an interactive picker when
 #        omitted.
+#   $JJ_BOOKMARK_PREFIX - Optional default bookmark prefix. Defaults to `work`.
 # Outputs:
 #   Writes picker prompts, validation errors, and the traced bookmark command.
 # Side effects:
@@ -32,7 +33,7 @@ if [[ -z "$target" ]]; then
   fi
 fi
 if [[ -z "$prefix" ]]; then
-  prefix=$(gum input --placeholder "Bookmark prefix" --value ktlo)
+  prefix=$(gum input --placeholder "Bookmark prefix" --value "${JJ_BOOKMARK_PREFIX:-work}")
 fi
 
 jj_json=$(jji log -n 1 -r "$target" -GT 'json(self)')

@@ -25,6 +25,7 @@ let
     mkOption
     nameValuePair
     optional
+    optionalAttrs
     optionalString
     types
     unique
@@ -43,16 +44,9 @@ let
   # glob over numbered hooks, so managed blocks never contain shell logic.
   hookDir = name: ".config/zsh/rc/${name}.d";
   dispatcherPath = name: ".config/zsh/rc/${name}.zsh";
-  # Zsh always reads ~/.zshenv first. After Home Manager's zshenv sets ZDOTDIR,
-  # later startup files are read from programs.zsh.dotDir, so the mutable bridge
-  # must manage the real files Zsh will read rather than blindly writing
-  # top-level files that may be ignored.
-  targetPath =
-    name:
-    if name == "zshenv" || config.lib.zsh.dotDirRel == "." then
-      ".${name}"
-    else
-      "${config.lib.zsh.dotDirRel}/.${name}";
+  # Keep the editable startup files at their conventional locations so tools
+  # that append to ~/.zshrc or ~/.zprofile continue to affect shell startup.
+  targetPath = name: ".${name}";
   defaultHookName = "50-nix-managed.zsh";
 
   nativeZshFileNames = [
@@ -162,6 +156,16 @@ let
     { cfg }:
     let
       enabledFiles = filterAttrs (_: file: file.enable) cfg.files;
+      redirectedFiles = filterAttrs (name: _: name != "zshenv") enabledFiles;
+      managedPlacement = file: {
+        mode = "after-preamble";
+        relocateExisting = true;
+        preambleLineRegexes = [
+          "^#!"
+          "^#($|[[:space:]])"
+          "^[[:space:]]*$"
+        ];
+      } // file.placement;
     in
     {
       home.file =
@@ -180,26 +184,39 @@ let
           }
         ) enabledFiles);
 
-      home.activation = mapAttrs' (
-        name: file:
-        nameValuePair "unmanaged-zsh-${name}" (
-          managedBlock.mkActivation {
-            name = "zsh ${name}";
-            target = targetPath name;
-            block = ''. "$HOME/${dispatcherPath name}"'';
-            placement = {
-              mode = "after-preamble";
-              relocateExisting = true;
-              preambleLineRegexes = [
-                "^#!"
-                "^#($|[[:space:]])"
-                "^[[:space:]]*$"
-              ];
+      home.activation =
+        (mapAttrs' (
+          name: file:
+          nameValuePair "unmanaged-zsh-${name}" (
+            managedBlock.mkActivation {
+              name = "zsh ${name}";
+              target = targetPath name;
+              block = ''. "$HOME/${dispatcherPath name}"'';
+              placement = managedPlacement file;
             }
-            // file.placement;
-          }
-        )
-      ) enabledFiles;
+          )
+        ) enabledFiles)
+        // (optionalAttrs (config.lib.zsh.dotDirRel != ".") (
+          mapAttrs' (
+            name: file:
+            nameValuePair "unmanaged-zsh-dotdir-${name}" (
+              managedBlock.mkActivation {
+                # Replace the existing dispatcher marker in the dot directory;
+                # the dispatcher now runs once from the editable top-level file.
+                name = "zsh ${name}";
+                target = "${config.lib.zsh.dotDirRel}/.${name}";
+                block = ''
+                  if [ -r "$HOME/.${name}" ]; then
+                    . "$HOME/.${name}"
+                  fi
+                '';
+                placement = (managedPlacement file) // {
+                  relocateExisting = false;
+                };
+              }
+            )
+          ) redirectedFiles
+        ));
     };
 in
 {

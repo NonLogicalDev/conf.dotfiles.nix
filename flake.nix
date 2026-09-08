@@ -20,5 +20,22 @@
     system-manager.inputs.nixpkgs.follows = "nixpkgs";
   };
 
-  outputs = inputs: inputs.blueprint { inherit inputs; };
+  outputs =
+    inputs:
+    let
+      outputs = inputs.blueprint { inherit inputs; };
+    in
+    outputs
+    // {
+      homeModules = builtins.mapAttrs (
+        _name: module:
+        if builtins.isString module || builtins.isPath module then
+          {
+            _file = toString module;
+            imports = [ module ];
+          }
+        else
+          module
+      ) outputs.homeModules;
+    };
 }

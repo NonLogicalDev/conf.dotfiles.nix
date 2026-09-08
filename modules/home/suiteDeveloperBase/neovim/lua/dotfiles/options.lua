@@ -20,6 +20,7 @@ vim.opt.hlsearch = true
 vim.opt.gdefault = true
 
 vim.opt.wrap = false
+vim.opt.foldlevelstart = 99
 vim.opt.scrolloff = 5
 vim.opt.sidescrolloff = 8
 vim.opt.laststatus = 2

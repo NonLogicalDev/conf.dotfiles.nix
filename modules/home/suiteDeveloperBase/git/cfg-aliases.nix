@@ -79,10 +79,8 @@
   # helper scripts stable when invoked from nested directories.
   run = ''!f() { cd "`git root`"; "$@"; }; f'';
 
-  # Legacy checkpoint muscle memory. The project-level agent instructions use a
-  # newer ISO `checkpoint[...]` commit format, so do not treat this alias as the
-  # canonical agent checkpoint implementation.
-  checkpoint = ''!f() { git add -A && git commit -m "$(date) :: checkpoint''${1:+ :: $1}"; }; f'';
+  # Match SVC_Checkpoint's UTC message format; keep staging the whole worktree.
+  checkpoint = ''!f() { git add -A && git commit -m "checkpoint[$(date -u +%Y-%m-%dT%H:%M:%SZ)] :: ''${*:-save work}"; }; f'';
   save = "checkpoint";
 
   # Interactive staging/reset/restore. These deliberately use porcelain output
