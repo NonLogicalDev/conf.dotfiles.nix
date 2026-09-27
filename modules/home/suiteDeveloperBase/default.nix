@@ -18,6 +18,8 @@
     ./tmux
   ];
 
+  config.programs.btop.enable = true;
+
   options.dotfiles.suites.developerBase = {
     scmIdentity = {
       # Git and Jujutsu share this identity surface so future profiles only
