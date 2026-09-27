@@ -1,0 +1,175 @@
+#!/bin/zsh
+SCRIPT_PATH=$0
+
+__help() {
+  cat ${SCRIPT_PATH} | grep "^ *#"":" | sed 's/^ *#://'
+}
+
+__die() {
+  if [[ -n $1 ]]; then
+    echo "ERROR: $1" >&2
+    echo
+  fi
+
+  if [[ -n $__DOC__ ]]; then
+    echo "$__DOC__" >&2
+  fi
+
+  exit 128
+}
+
+#######################################################################
+#                          Stacked Git Utils                          #
+#######################################################################
+
+stg-overview() {
+  #: stg-overview
+  #:   prints an overview of all currently active stg branches.
+  #:   (i.e. prints out the current stack state)
+  #:
+
+  stg-branches | xargs -I {} sh -c 'echo "::::: {}" && stg series -b {} && echo'
+}
+
+stg-stack-files() {
+  #: stg-stack-files
+  #:   show all files the patches in the stack modify
+  #:
+
+  git diff $(stg id $(stg series --noprefix | head -n 1)).. --name-status | cat
+}
+
+stg-rstash() {
+  #: stg-rstash
+  #:   stash/publish the current patch to the remote
+  #:
+
+  # Check that Stg is enabled
+  stg top 2>/dev/null >/dev/null
+  if [[ $? -ne 0 ]]; then
+    __die "stg-rstash: ${GIT_BRANCH}: branch not initialized"
+  fi
+
+  STG_PATCH_NAME=$(stg top)
+
+  git rstash "$@" -- "HEAD:${STG_PATCH_NAME}"
+}
+
+stg-heads() {
+  #: stg-heads [-n]
+  #:   print out HEAD offset references for all applied patches
+  #:
+  #:   (-n): print references in one line, one per line otherwise
+  #:
+
+  local REFS=()
+  for i in $(seq 0 $(stg series -A |wc -l)); do
+    REFS+=("HEAD~$i")
+  done
+  if [[ $1 == "-n" ]]; then
+    echo "${REFS[@]}"
+  else
+    printf "%s\n" "${REFS[@]}"
+  fi
+}
+
+#######################################################################
+#                            Git Utilites                             #
+#######################################################################
+
+git-checked-add-update() {
+  #: git-checked-add-update
+  #:   `git add -u` but with diff preview and confirmation
+  #:
+
+  git diff -u --stat -- "$@"
+  git --no-pager diff --stat -- "$@"
+
+  echo
+  echo ">> Adding the following changes to INDEX (sha:$(git rev-parse --short HEAD))"
+  if ( read -q 'choice?$$ Confirm? ' ); then
+    echo
+    echo ">> [applying...]"
+    ( set -x; git add -u -- "$@" ; )
+    echo ">> Verifying Git Status:"
+    git status -s
+  else
+    echo
+    echo ">> [cancelled]"
+  fi
+}
+
+git-quick-log() {
+  git log -n 3 --format="%h %al (%ar)%n  %s" "$@"
+}
+
+git-info() {
+  #: git-info
+  #:   print summary (5 latest commits, or un-pushed commits)
+  #:
+
+  GIT_UPSTREAM=$(git rev-parse --abbrev-ref HEAD@{upstream} 2>/dev/null)
+
+  if [[ -z "$GIT_UPSTREAM" ]]; then
+    git lg -n 5
+  else
+    GIT_MERGEPOINT=$(git merge-base --fork-point $GIT_UPSTREAM)
+    git lg ${GIT_MERGEPOINT}^1..HEAD
+  fi
+}
+
+git-ctx() {
+  #: git-ctx
+  #:   interactively switch to a different branch using FZF with log preview
+  #:
+
+  git-branch-log 100 \
+  | fzf +s "$@" --preview='git-utils git-quick-log -n 5 {}' --height "100%" --preview-window="right:60%" \
+  | xargs git switch
+}
+
+git-branch-log() {
+  #: git-branch-log
+  #:   show branch history, i.e. show branches in the order of last visited
+  #:
+
+  local __max_num=${1:-20}
+
+  git-branch-history-list \
+    | awk '{print $1}' \
+    | awk '!x[$0]++' \
+    | head -n ${__max_num}
+}
+
+git-branch-history() {
+  #: git-branch-history
+  #:   show branch switching history, i.e. show moving between branches in the order of last visited
+  #:
+
+  local __max_num=${1:-20}
+
+  git-branch-history-list \
+    | awk '{print $2 "%%" "<-" "%%" $1}' \
+    | column -tx -s "%%" \
+    | head -n ${__max_num}
+}
+
+
+git-branch-history-list() {
+  git reflog \
+    | grep --line-buffered 'checkout: moving from' \
+    | perl -pe 's/.*moving from (.+) to (.+)/$1\t$2/'
+}
+
+
+git-rstash() {
+  git rstash "$@"
+}
+
+#######################################################################
+
+if [[ "$1" == (-h|--help|-?|help) ]]; then
+  __help
+  exit 125
+fi
+"$@"

@@ -1,0 +1,47 @@
+" vim: ft=vim
+
+colorscheme modern
+
+" ------------------------------------------------------------------------------
+
+set nofollowlinks
+set fillchars=vborder:'│'
+set viewcolumns=-{name},6{size},15{mtime}
+
+set vicmd=nvim
+set mouse=a
+
+" ------------------------------------------------------------------------------
+
+fileview *.zip
+      \ ~/.config/vifm/scripts/view.sh --type zip "%c"
+
+fileview *.tar, *.tar.gz
+      \ ~/.config/vifm/scripts/view.sh "%c"
+
+
+fileview */
+      \ ~/.config/vifm/scripts/view.sh --type dir "%c"
+
+fileview .*/
+      \ ~/.config/vifm/scripts/view.sh --type dir "%c"
+
+fileview .*
+      \ ~/.config/vifm/scripts/view.sh "%c"
+
+fileview *
+      \ ~/.config/vifm/scripts/view.sh "%c"
+
+" filextype *.pdf, *.jpg
+"       \ {View in default OSX app}
+"       \ open %c
+
+" ------------------------------------------------------------------------------
+
+map o :!~/.config/vifm/scripts/open.sh %f<CR>
+map O :!~/.config/vifm/scripts/open.sh --as-preview %f<CR>
+
+map ec :!code %f > /dev/null 2>/dev/null &<CR>
+map ei :!idea %f > /dev/null 2>/dev/null &<CR>
+
+" command link :execute '!ln -s %d/%f %D'

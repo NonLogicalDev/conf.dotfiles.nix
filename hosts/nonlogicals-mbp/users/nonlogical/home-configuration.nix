@@ -4,6 +4,12 @@
   imports = [
     inputs.self.homeModules.core
     inputs.self.homeModules.suiteDeveloperBase
+    ./home/local-tools.nix
+    ./home/commands.nix
+    ./home/terminals
+    ./home/vim
+    ./home/vifm
+    ./home/vscode
   ];
 
   dotfiles.suites.developerBase = {

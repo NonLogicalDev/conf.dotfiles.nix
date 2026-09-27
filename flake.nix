@@ -4,6 +4,9 @@
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs?ref=nixos-unstable";
 
+    # Keep the Mac's existing Jujutsu version while the main package set stays pinned.
+    nixpkgs-jujutsu.url = "github:NixOS/nixpkgs/279b4a8275f032c566576b3f181fa0f27197f588";
+
     blueprint.url = "github:numtide/blueprint";
     blueprint.inputs.nixpkgs.follows = "nixpkgs";
 

@@ -1,19 +1,25 @@
 # dotfiles-nix
 
-This repo is the slow reboot of my user profile management: move from a Dotter-controlled garden of chaos to a Nix-managed profile that is understandable, reversible, and boring to operate.
+This repository manages the development environment through Home Manager. The local Mac uses the standalone `nonlogical@nonlogicals-mbp` profile with Determinate Nix. Terminal applications and mutable application data remain installed and stored separately from their Nix-managed preferences.
 
-The goal is not to port everything at once. The first phase is inventory and boundaries:
+## Local workflow
 
-- Identify what Dotter currently owns.
-- Separate machine-specific state from portable user profile configuration.
-- Decide which parts belong in Nix, which parts should stay as app state, and which parts should be deleted.
-- Introduce Nix modules only after the current behavior is understood.
+From this checkout:
 
-The flake is Blueprint-native and is intended to grow into three system-profile targets over time:
+```sh
+home-manager switch --flake .#nonlogical@nonlogicals-mbp
+nix flake check
+```
 
-- `nix-darwin` for macOS machines.
-- NixOS for full Nix-managed hosts.
-- `system-manager` for non-NixOS systems where Nix should manage selected system state.
+To build and inspect a profile before activating it:
+
+```sh
+nix build '.#homeConfigurations."nonlogical@nonlogicals-mbp".activationPackage'
+```
+
+The host profile composes the shared developer suite with local terminal/editor preferences, personal helper commands, existing tool paths, and an independently pinned Jujutsu version. Shell and Git entrypoints remain editable through the repository's managed include blocks. Changes to durable settings belong in the Nix modules.
+
+The Darwin scaffold is retained for future system management; it is not the activation entrypoint on this Determinate-managed Mac. Other existing Nix profile packages remain installed independently unless Home Manager owns the same package.
 
 ## Layout
 

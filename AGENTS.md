@@ -1,6 +1,6 @@
 # AGENTS.md - dotfiles-nix
 
-Read this file before editing the repo. This project is a slow migration from Dotter-managed dotfiles to Nix-managed user and system profiles.
+Read this file before editing the repo. This project manages user and system profiles with Nix. The local Mac cutover uses standalone Home Manager with Determinate Nix.
 
 ## Migration Memory
 
@@ -10,7 +10,9 @@ Read this file before editing the repo. This project is a slow migration from Do
 - Do not move secrets into the repo.
 - Do not rewrite working config just because it looks messy.
 - The repo was bootstrapped with an empty `INIT` commit, followed by README and `$Tasker_Plan` scaffolding.
-- Next migration step: perform a read-only inventory of the current Dotter layout and existing dotfiles before migrating real config.
+- Use the standalone `nonlogical@nonlogicals-mbp` Home Manager profile for the local Mac. Read the latest cutover plan before changing deployed ownership. Preserve mutable application data and user-written shell/Git settings outside managed include blocks.
+- Preserve the separately pinned Jujutsu version when changing package inputs; downgrading an active repository tool is not an incidental dotfile update.
+- Do not treat activation DRY_RUN as read-only: the custom mutable-file bridges currently execute writes directly. Build and inspect generated files before live activation.
 
 ## Project Rules
 
