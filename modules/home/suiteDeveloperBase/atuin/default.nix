@@ -26,8 +26,8 @@ let
       RUST_LOG = "info,atuin_server=debug";
     };
     svcCmdStart = [
-      (lib.getExe config.programs.atuin.package)
-      "server"
+      # Services have a minimal PATH; invoke the server executable directly.
+      (lib.getExe' config.programs.atuin.package "atuin-server")
       "start"
       "--host"
       svcNetworkHost

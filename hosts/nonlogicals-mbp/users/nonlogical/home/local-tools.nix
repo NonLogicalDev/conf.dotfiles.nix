@@ -45,6 +45,15 @@ in
     profileExtra = shellEnvironment;
   };
 
+  # Fish does not read the POSIX Nix installer hook. A directly launched fish
+  # must find profile tools before interactive integrations invoke them.
+  programs.fish.shellInit = ''
+    if test -x /opt/homebrew/bin/brew
+      /opt/homebrew/bin/brew shellenv fish | source
+    end
+    fish_add_path --path --move --prepend "$HOME/.nix-profile/bin" /nix/var/nix/profiles/default/bin
+  '';
+
   # Retain the database filename declared by the previous local sync service.
   launchd.agents.atuin-server.config.EnvironmentVariables.ATUIN_DB_URI =
     lib.mkForce "sqlite://${config.xdg.dataHome}/atuin/atuin-server.db";
