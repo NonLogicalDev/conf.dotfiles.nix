@@ -1,3 +1,5 @@
+{ checkpointSave }:
+
 {
   # Tiny muscle-memory shorthands. These are intentionally boring and mirror
   # common Git subcommands rather than inventing new behavior.
@@ -79,10 +81,8 @@
   # helper scripts stable when invoked from nested directories.
   run = ''!f() { cd "`git root`"; "$@"; }; f'';
 
-  # Legacy checkpoint muscle memory. The project-level agent instructions use a
-  # newer ISO `checkpoint[...]` commit format, so do not treat this alias as the
-  # canonical agent checkpoint implementation.
-  checkpoint = ''!f() { git add -A && git commit -m "$(date) :: checkpoint''${1:+ :: $1}"; }; f'';
+  # Save all pending changes through the checkpoint command.
+  checkpoint = "!${checkpointSave} --all";
   save = "checkpoint";
 
   # Interactive staging/reset/restore. These deliberately use porcelain output
