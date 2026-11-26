@@ -120,11 +120,9 @@ in
     };
   };
 
-  # Several jj aliases shell out to `jq`, `gum`, and Git. Keep those runtime
-  # dependencies near the jujutsu profile instead of promoting them into a broad
-  # common package list.
+  # Keep the tools used by jj aliases near the Jujutsu profile. Git itself is
+  # selected separately so hosts can provide their own Git implementation.
   home.packages = [
-    pkgs.git
     pkgs.gum
     pkgs.jq
     pkgs.stgit

@@ -5,7 +5,7 @@
 zmodload zsh/terminfo || :
 autoload -Uz edit-command-line && zle -N edit-command-line
 
-function zsh-widget-noop() {}
+function zsh-widget-noop() { :; }
 zle -N zsh-widget-noop
 
 if (( ${+terminfo[smkx]} )) && (( ${+terminfo[rmkx]} )); then

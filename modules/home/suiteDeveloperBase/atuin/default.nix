@@ -1,6 +1,7 @@
 {
   config,
   lib,
+  options,
   pkgs,
   ...
 }:
@@ -145,15 +146,17 @@ in
   # those preferences directly, so we avoid copying the whole generated TOML.
   programs.atuin = {
     enable = true;
+    enableZshIntegration = true;
 
     settings = {
       # Preserve the behavioral fact that Atuin syncs against a local server.
       # How that server is launched is operational plumbing, not client config.
       sync_address = "http://127.0.0.1:45654";
 
-      # Keep the shell up-key scoped to the current session instead of searching
-      # all global history.
-      filter_mode_shell_up_key_binding = "session";
+      # Keep interactive history searches scoped to this host by default.
+      filter_mode = "host";
+      filter_mode_shell_up_key_binding = "host";
+      search_mode = "daemon-fuzzy";
 
       # Escape should leave the typed query in the shell rather than replacing it
       # with the original command.
@@ -162,6 +165,24 @@ in
       # Require an explicit accept/edit decision from the Atuin UI before a
       # command is executed.
       enter_accept = false;
+
+      daemon = {
+        enabled = true;
+        autostart = true;
+      };
+
+      search = {
+        filters = [
+          "host"
+          "directory"
+          "session"
+          "global"
+        ];
+
+        recency_score_multiplier = 6;
+        frequency_score_multiplier = 1;
+        frecency_score_multiplier = 2;
+      };
 
       stats = {
         # Preserve the existing command grouping that makes Atuin stats useful
@@ -217,22 +238,32 @@ in
     "Library/Logs/atuin/.keep".text = "";
   };
 
-  launchd.agents.atuin-server = lib.mkIf pkgs.stdenv.isDarwin {
-    enable = true;
-    domain = lib.mkDefault atuinServer.svcLaunchdDomain;
-    config = {
-      ProgramArguments = atuinServer.svcCmdStart;
-      EnvironmentVariables = atuinServer.svcEnvironment;
-      KeepAlive = {
-        Crashed = true;
-        SuccessfulExit = false;
+  launchd.agents.atuin-server = lib.mkIf pkgs.stdenv.isDarwin (
+    {
+      enable = true;
+      config = {
+        ProgramArguments = atuinServer.svcCmdStart;
+        EnvironmentVariables = atuinServer.svcEnvironment;
+        KeepAlive = {
+          Crashed = true;
+          SuccessfulExit = false;
+        };
+        ProcessType = "Background";
+        RunAtLoad = true;
+        StandardOutPath = "${atuinServer.svcDirectoryLaunchdLog}/launchd-stdout.log";
+        StandardErrorPath = "${atuinServer.svcDirectoryLaunchdLog}/launchd-stderr.log";
       };
-      ProcessType = "Background";
-      RunAtLoad = true;
-      StandardOutPath = "${atuinServer.svcDirectoryLaunchdLog}/launchd-stdout.log";
-      StandardErrorPath = "${atuinServer.svcDirectoryLaunchdLog}/launchd-stderr.log";
-    };
-  };
+    }
+    // lib.optionalAttrs
+      ((options.launchd.agents.type.getSubOptions [
+        "launchd"
+        "agents"
+        "atuin-server"
+      ]) ? domain)
+      {
+        domain = lib.mkDefault atuinServer.svcLaunchdDomain;
+      }
+  );
 
   systemd.user.services.atuin-server = lib.mkIf (pkgs.stdenv.isLinux && config.systemd.user.enable) {
     Unit = {

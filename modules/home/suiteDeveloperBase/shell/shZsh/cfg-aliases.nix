@@ -35,6 +35,14 @@
   # Long listing sorted by modification time for recent-file checks.
   lt = "eza --long --sort=modified --group-directories-first";
 
+  # Retain established shortcuts for recursive and alternate sorted listings.
+  lr = "eza --long --recurse --group-directories-first";
+  lx = "eza --long --sort=extension --group-directories-first";
+  lk = "eza --long --sort=size --group-directories-first";
+  lc = "eza --long --sort=changed --changed --group-directories-first";
+  lu = "eza --long --sort=accessed --accessed --group-directories-first";
+  lm = "eza --long --all --header --git --group-directories-first | $PAGER";
+
   # Short entry point for the cross-platform opener wrapper.
   o = "opn";
 

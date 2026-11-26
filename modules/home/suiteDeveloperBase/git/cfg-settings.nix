@@ -25,10 +25,6 @@ in
   ];
 
   core = {
-    # Keep hooks in ~/bin/git-hooks because older scripts and repos may already
-    # assume that location. A future package-managed hook suite can replace this
-    # once those scripts are inventoried.
-    hooksPath = "${config.home.homeDirectory}/bin/git-hooks";
     pager = "cat";
   };
 

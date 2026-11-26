@@ -4,6 +4,7 @@
   imports = [
     inputs.self.homeModules.core
     inputs.self.homeModules.suiteDeveloperBase
+    inputs.self.homeModules.suiteGraphicalApps
     ./home/local-tools.nix
     ./home/commands.nix
     ./home/terminals

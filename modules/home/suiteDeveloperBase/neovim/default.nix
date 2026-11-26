@@ -28,6 +28,7 @@
     ./plugins/lsp__nvim-lspconfig.nix
     ./plugins/lsp__nvim-treesitter.nix
     ./plugins/lsp__trouble.nix
+    ./plugins/nav__bookmarks.nix
     ./plugins/nav__flash.nix
     ./plugins/nav__nvim-tree.nix
     ./plugins/nav__telescope.nix
@@ -35,10 +36,12 @@
     ./plugins/tools__dash.nix
     ./plugins/tools__toggleterm.nix
     ./plugins/ui__bufferline.nix
+    ./plugins/ui__dressing.nix
     ./plugins/ui__fidget.nix
     ./plugins/ui__lualine.nix
     ./plugins/ui__nvim-web-devicons.nix
     ./plugins/vcs__gitsigns.nix
+    ./plugins/vcs__jj.nix
   ];
 
   # Neovim is managed through NixVim, not as a copied Dotter tree or a hand-built
@@ -51,9 +54,15 @@
     defaultEditor = true;
     viAlias = true;
     vimAlias = true;
+    vimdiffAlias = true;
     withNodeJs = true;
     withPython3 = true;
-    withRuby = false;
+    withRuby = true;
+
+    globals = {
+      mapleader = " ";
+      maplocalleader = "\\";
+    };
 
     # The flake input follows this repo's nixpkgs on purpose. Tell NixVim which
     # source that is so it does not warn about the followed input at evaluation.
@@ -78,6 +87,7 @@
     "nvim/lua/dotfiles/autocmds.lua".source = ./lua/dotfiles/autocmds.lua;
     "nvim/lua/dotfiles/keymaps.lua".source = ./lua/dotfiles/keymaps.lua;
     "nvim/lua/dotfiles/options.lua".source = ./lua/dotfiles/options.lua;
+    "nvim/colors/ao.vim".source = ./colors/ao.vim;
     "nvim/after/ftplugin/python.vim".source = ./after/ftplugin/python.vim;
   };
 }

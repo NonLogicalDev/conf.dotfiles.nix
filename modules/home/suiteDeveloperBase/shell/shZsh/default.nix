@@ -1,6 +1,7 @@
 {
   config,
   lib,
+  options,
   pkgs,
   ...
 }:
@@ -14,7 +15,13 @@ let
     ;
 
   aliases = import ./cfg-aliases.nix;
-  plugins = import ./cfg-plugins.nix { inherit pkgs; };
+  supportsPluginFunctions = builtins.hasAttr "functions" (
+    options.programs.zsh.plugins.type.nestedTypes.elemType.getSubOptions [ ]
+  );
+  plugins = import ./cfg-plugins.nix {
+    inherit pkgs supportsPluginFunctions;
+    enableFzfTabNativeModule = config.dotfiles.suites.developerBase.shell.fzfTab.enableNativeModule;
+  };
   shellOptions = import ./cfg-options.nix;
 
   # Home Manager merges `programs.zsh.initContent` by numeric order. The chosen

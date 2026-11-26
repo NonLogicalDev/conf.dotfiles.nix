@@ -17,8 +17,6 @@ in
         "log"
         "-T"
         "my_log_compact"
-        "-n"
-        "10"
         "--config"
         "revsets.log=rlog"
       ];
@@ -26,8 +24,6 @@ in
       # Fuller current-branch log for when the compact template hides too much.
       ll = [
         "log"
-        "-n"
-        "10"
         "--config"
         "revsets.log=::@"
       ];
@@ -42,6 +38,13 @@ in
         "revsets.log=ancestors(trunk()..@, 2) | descendants(@, 3) | @"
       ];
 
+      # Show only the current stack and its immediate ancestors from trunk.
+      tlog = [
+        "log"
+        "-r"
+        "ancestors(trunk()..@, 2)"
+      ];
+
       # Show the first bookmark reachable from the current change. Useful for
       # scripts or prompts that want one branch-ish name without full log noise.
       bm = jjAliasBashFile { file = ./lib/aliases/bm.bash; };
@@ -54,8 +57,6 @@ in
       # the graph has a stable anchor even when bookmarks are disconnected.
       bl = [
         "log"
-        "-n"
-        "10"
         "-T"
         "if(!root, my_log_compact)"
         "-r"
