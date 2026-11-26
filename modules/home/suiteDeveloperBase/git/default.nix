@@ -1,5 +1,6 @@
 {
   config,
+  inputs,
   lib,
   pkgs,
   ...
@@ -9,7 +10,8 @@ let
   # Split Git into small files because the settings and alias maps are dense.
   # This file is the composition point: it decides what Git owns, while sibling
   # cfg-* files explain individual behavior.
-  aliases = import ./cfg-aliases.nix;
+  checkpointSave = inputs.self.packages.${pkgs.stdenv.hostPlatform.system}.git-checkpoint-save;
+  aliases = import ./cfg-aliases.nix { checkpointSave = lib.getExe checkpointSave; };
   ignorePatterns = import ./cfg-ignore-patterns.nix;
   settings = import ./cfg-settings.nix { inherit config lib pkgs; };
   stgitAliases = import ./cfg-aliases-stgit.nix { inherit lib pkgs; };
@@ -21,6 +23,7 @@ in
   home.packages = [
     pkgs.gh
     pkgs.stgit
+    checkpointSave
   ];
 
   programs.unmanaged.git = {
